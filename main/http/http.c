@@ -215,7 +215,7 @@ esp_err_t http_get_weather(char *result)
     num2cn(atoi(humi), &humiCn);
     num2cn(atoi(windSpeed), &windSpeedCn);
 
-    sprintf(result, "%s %s 气温%s摄氏度湿度百分之%s %s%s级", city, weather, tempCn, humiCn, wind, windSpeedCn);
+    sprintf(result, "%s %s\n气温%s摄氏度\n湿度百分之%s\n%s%s级", city, weather, tempCn, humiCn, wind, windSpeedCn);
     ESP_LOGI(TAG, "weather text: %s", result);
 
     return ESP_OK;
@@ -256,6 +256,7 @@ int http_get_bilibili_fans()
                  esp_http_client_get_status_code(client),
                  esp_http_client_get_content_length(client)
         );
+        strstr(json, "}}")[2] = '\0';
         ESP_LOGI(TAG, "Response: %s", json);
     } else {
         ESP_LOGE(TAG, "Error perform http request %s", esp_err_to_name(err));
