@@ -96,7 +96,8 @@ void tts_read(char *str)
 int play_bilibili_fans()
 {
     sr_anim_set_text("正在请求...");
-    char *prompt1 = malloc(100);
+    char *prompt1 = (char*)malloc(50);
+    char *prompt2 = (char*)malloc(50);
     int fans = http_get_bilibili_fans();
     if (fans < 0) {
         strcpy(prompt1, "获取粉丝数失败");
@@ -105,27 +106,68 @@ int play_bilibili_fans()
         memset(fansCn, 0, sizeof(fansCn));
         num2cn(fans, fansCn);
         sprintf(prompt1, "必站粉丝%s人", fansCn);
+        sprintf(prompt2, "B站粉丝%d人", fans);
+        sr_anim_set_text(prompt2);
         free(fansCn);
     }
-    sr_anim_set_text(prompt1);
     tts_read(prompt1);
     free(prompt1);
+    free(prompt2);
 }
 
 
 int play_weather()
 {
+    weather_result_t *weather = malloc(sizeof(weather_result_t));
+    memset(weather, 0, sizeof(weather_result_t));
+
+    char *str = malloc(128);
+    memset(str, 0, 128);
+
     sr_anim_set_text("正在请求...");
-    char *str = malloc(100);
-    memset(str, 0, 100);
-    esp_err_t ret = http_get_weather(str);
+    esp_err_t ret = http_get_weather(weather);
     ESP_LOGI(TAG, "play_weather ret=%d", ret);
     if (ret != ESP_OK) {
         strcpy(str, "获取天气失败");
+        sr_anim_set_text(str);
+        tts_read(str);
+    } else {
+        char tempCn[12];
+        char windSpeedCn[12];
+        char humiCn[12];
+        memset(tempCn, 0, 12);
+        memset(windSpeedCn, 0, 12);
+        memset(humiCn, 0, 12);
+        num2cn(atoi(weather->temp), &tempCn);
+        num2cn(atoi(weather->humi), &humiCn);
+        num2cn(atoi(weather->windSpeed), &windSpeedCn);
+
+        sprintf(str, "%s %s\n%s摄氏度 %s%%\n%s%s级",
+                weather->city,
+                weather->weather,
+                weather->temp,
+                weather->humi,
+                weather->wind,
+                weather->windSpeed
+        );
+        sr_anim_set_text(str);
+        ESP_LOGI(TAG, "play_weather str=%s", str);
+
+        char *ttsStr = malloc(128);
+        memset(ttsStr, 0, 128);
+        sprintf(ttsStr, "%s %s\n气温%s摄氏度\n湿度百分之%s\n%s%s级",
+                weather->city,
+                weather->weather,
+                tempCn,
+                humiCn,
+                weather->wind,
+                windSpeedCn
+        );
+
+        tts_read(ttsStr);
     }
-    sr_anim_set_text(str);
-    tts_read(str);
     free(str);
+    free(weather);
 }
 
 static esp_err_t sr_echo_play(audio_segment_t audio)

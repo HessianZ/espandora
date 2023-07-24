@@ -115,7 +115,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
     return ESP_OK;
 }
 
-esp_err_t http_get_weather(char *result)
+esp_err_t http_get_weather(weather_result_t *result)
 {
     ESP_LOGI(TAG, "Start http_get_weather ...");
 
@@ -160,13 +160,6 @@ esp_err_t http_get_weather(char *result)
     free(response);
     response = NULL;
 
-    char city[10];
-    char temp[5];
-    char weather[12];
-    char humi[5];
-    char wind[12];
-    char windSpeed[10];
-
     jctx = (jparse_ctx_t *)malloc(sizeof(jparse_ctx_t));
     int ret = json_parse_start(jctx, json, strlen(json));
     if (ret != OS_SUCCESS) {
@@ -174,49 +167,37 @@ esp_err_t http_get_weather(char *result)
         goto exception;
     }
 
-    if (json_obj_get_string(jctx, "cityname", &city, 10) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "cityname", &result->city, 10) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: weather\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "temp", &temp, 5) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "temp", &result->temp, 5) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: weather\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "SD", &humi, 5) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "SD", &result->humi, 5) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: humi\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "weather", &weather, 12) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "weather", &result->weather, 12) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: weather\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "WD", &wind, 12) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "WD", &result->wind, 12) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: wind\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "WS", &windSpeed, 10) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "WS", &result->windSpeed, 10) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: windSpeed\n");
         goto exception;
     }
-    strstr(humi, "%")[0] = '\0';
-    strstr(windSpeed, "级")[0] = '\0';
+    strstr(result->humi, "%")[0] = '\0';
+    strstr(result->windSpeed, "级")[0] = '\0';
 
     json_parse_end(jctx);
     free(json);
     json = NULL;
 
-    char tempCn[12];
-    char windSpeedCn[12];
-    char humiCn[12];
-    memset(tempCn, 0, 12);
-    memset(windSpeedCn, 0, 12);
-    memset(humiCn, 0, 12);
-    num2cn(atoi(temp), &tempCn);
-    num2cn(atoi(humi), &humiCn);
-    num2cn(atoi(windSpeed), &windSpeedCn);
-
-    sprintf(result, "%s %s\n气温%s摄氏度\n湿度百分之%s\n%s%s级", city, weather, tempCn, humiCn, wind, windSpeedCn);
-    ESP_LOGI(TAG, "weather text: %s", result);
 
     return ESP_OK;
 

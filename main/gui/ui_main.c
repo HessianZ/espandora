@@ -39,9 +39,7 @@ static lv_obj_t *g_page_menu = NULL;
  * you should lock on the very same semaphore! */
 SemaphoreHandle_t g_guisemaphore;
 static lv_obj_t *g_lab_wifi = NULL;
-static lv_obj_t *g_lab_cloud = NULL;
 static lv_obj_t *g_status_bar = NULL;
-static lv_obj_t *g_fans = NULL;
 
 static void ui_main_menu(int32_t index_id);
 static void ui_led_set_visible(bool visible);
@@ -120,7 +118,6 @@ static void ui_status_bar_set_visible(bool visible)
     if (visible) {
         // update all state
         ui_main_status_bar_set_wifi(app_wifi_is_connected());
-        ui_main_status_bar_set_fans();
         lv_obj_clear_flag(g_status_bar, LV_OBJ_FLAG_HIDDEN);
     } else {
         lv_obj_add_flag(g_status_bar, LV_OBJ_FLAG_HIDDEN);
@@ -136,13 +133,6 @@ void ui_main_status_bar_set_wifi(bool is_connected)
 {
     if (g_lab_wifi) {
         lv_label_set_text_static(g_lab_wifi, is_connected ? LV_SYMBOL_WIFI : LV_SYMBOL_EXTRA_WIFI_OFF);
-    }
-}
-
-void ui_main_status_bar_set_fans()
-{
-    if (g_fans) {
-//        lv_label_set_text_static(g_fans, bilibili_fans);
     }
 }
 
@@ -179,9 +169,9 @@ LV_IMG_DECLARE(icon_network)
 LV_IMG_DECLARE(icon_bilibili)
 
 static item_desc_t item[] = {
-    { .name = "B站粉丝",         .img_src = (void *) &icon_bilibili},
-    { .name = "网络设置",        .img_src = (void *) &icon_network},
-    { .name = "关于",           .img_src = (void *) &icon_about_us},
+    { .name = "书籍",      .img_src = (void *) &icon_bilibili},
+    { .name = "网络设置",   .img_src = (void *) &icon_network},
+    { .name = "关于",      .img_src = (void *) &icon_about_us},
 };
 
 static lv_obj_t *g_img_btn, *g_img_item = NULL;
@@ -545,13 +535,6 @@ esp_err_t ui_main_start(void)
 
     g_lab_wifi = lv_label_create(g_status_bar);
     lv_obj_align_to(g_lab_wifi, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
-
-    g_lab_cloud = lv_label_create(g_status_bar);
-    lv_obj_set_style_text_font(g_lab_cloud, &font_icon_16, LV_PART_MAIN);
-    lv_obj_align_to(g_lab_cloud, g_lab_wifi, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
-
-    g_fans = lv_label_create(g_status_bar);
-    lv_obj_align_to(g_fans, g_lab_cloud, LV_ALIGN_OUT_RIGHT_MID, 5, 0);
 
     ui_status_bar_set_visible(0);
 
