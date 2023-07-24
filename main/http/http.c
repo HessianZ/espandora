@@ -1,19 +1,13 @@
 #include <esp_types.h>
 #include <string.h>
 #include <inttypes.h>
-#include <lwip/netdb.h>
 #include <esp_http_client.h>
 #include <sys/param.h>
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-#include "freertos/event_groups.h"
-#include "esp_wifi.h"
-#include "esp_event.h"
 #include "esp_log.h"
 #include "nvs.h"
 
-#include "lwip/err.h"
-#include "lwip/sockets.h"
 #include "esp_tls.h"
 #include "sdkconfig.h"
 #include "esp_crt_bundle.h"
@@ -21,106 +15,20 @@
 #include "json_parser.h"
 #include "util.h"
 
-/* Constants that aren't configurable in menuconfig */
-#define WEB_PORT "443"
-#define BILIBILI_FANS_URL "https://api.bilibili.com/x/relation/stat?vmid=10442962&jsonp=jsonp"
+#define BILIBILI_UID "10442962"
+#define BILIBILI_FANS_URL "https://api.bilibili.com/x/relation/stat?vmid=" BILIBILI_UID "&jsonp=jsonp"
 
 // 101280401 = 梅州
 #define CITY_CODE "101280401"
 #define WEATHER_URL "http://d1.weather.com.cn/weather_index/" CITY_CODE ".html"
 #define WEATHER_REFERER "http://www.weather.com.cn/"
 
-#define MAX_HTTP_RECV_BUFFER 512
 #define MAX_HTTP_OUTPUT_BUFFER 5192
-#define SERVER_URL_MAX_SZ 256
-#define RESPONSE_BUF_SIZE 1024
 
 static const char *TAG = "http";
 
-static int g_fans = -1;
-static int64_t g_fans_update_time = 0;
-
-#define TIME_PERIOD (120 * 1000000L)
 
 #define USER_AGENT "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36 Edg/114.0.1823.37"
-static const char REQUEST[] = "GET " BILIBILI_FANS_URL " HTTP/1.1\r\n"
-                                        "Host: api.bilibili.com\r\n"
-                                        "User-Agent: " USER_AGENT "\r\n"
-                                        "\r\n";
-static const char WEATHER_REQUEST[] = "GET " WEATHER_URL " HTTP/1.1\r\n"
-                                        "Host: d1.weather.com.cn\r\n"
-                                        "Referer: http://www.weather.com.cn/\r\n"
-                                        "User-Agent: " USER_AGENT "\r\n"
-                                        "\r\n";
-
-typedef struct {
-    char *name;
-    char *value;
-} http_header_t;
-
-static void https_get_request(char *response)
-{
-    esp_tls_cfg_t cfg = {
-            .crt_bundle_attach = esp_crt_bundle_attach,
-    };
-
-    int ret, len;
-
-    esp_tls_t *tls = esp_tls_init();
-    if (!tls) {
-        ESP_LOGE(TAG, "Failed to allocate esp_tls handle!");
-        goto exit;
-    }
-
-    if (esp_tls_conn_http_new_sync(BILIBILI_FANS_URL, &cfg, tls) == 1) {
-        ESP_LOGI(TAG, "Connection established...");
-    } else {
-        ESP_LOGE(TAG, "Connection failed...");
-        goto cleanup;
-    }
-
-    size_t written_bytes = 0;
-    do {
-        ret = esp_tls_conn_write(tls,
-                                 REQUEST + written_bytes,
-                                 strlen(REQUEST) - written_bytes);
-        if (ret >= 0) {
-            ESP_LOGI(TAG, "%d bytes written", ret);
-            written_bytes += ret;
-        } else if (ret != ESP_TLS_ERR_SSL_WANT_READ  && ret != ESP_TLS_ERR_SSL_WANT_WRITE) {
-            ESP_LOGE(TAG, "esp_tls_conn_write  returned: [0x%02X](%s)", ret, esp_err_to_name(ret));
-            goto cleanup;
-        }
-    } while (written_bytes < strlen(REQUEST));
-
-    ESP_LOGI(TAG, "Reading HTTP response...");
-    char buf[256];
-    do {
-        len = sizeof(buf) - 1;
-        memset(buf, 0x00, sizeof(buf));
-        ret = esp_tls_conn_read(tls, (char *)buf, len);
-
-        if (ret == ESP_TLS_ERR_SSL_WANT_WRITE  || ret == ESP_TLS_ERR_SSL_WANT_READ) {
-            ESP_LOGI(TAG, "ret: %d", ret);
-            continue;
-        } else if (ret < 0) {
-            ESP_LOGE(TAG, "esp_tls_conn_read  returned [-0x%02X](%s)", -ret, esp_err_to_name(ret));
-            break;
-        } else if (ret == 0) {
-            ESP_LOGI(TAG, "connection closed");
-            break;
-        }
-
-        len = ret;
-        ESP_LOGI(TAG, "%d bytes read", len);
-        strcat(response, buf);
-    } while (1);
-
-    cleanup:
-    esp_tls_conn_destroy(tls);
-    exit:
-    return;
-}
 
 
 esp_err_t _http_event_handler(esp_http_client_event_t *evt)
@@ -383,26 +291,4 @@ int http_get_bilibili_fans()
     ESP_LOGI(TAG, "BILIBILI_FANS: %d", fans_num);
 
     return fans_num;
-}
-
-static http_fans_change_cb fans_change_cb = NULL;
-
-_Noreturn void http_bilibili_task(void *arg) {
-    while (1) {
-        g_fans_update_time = esp_timer_get_time();
-        int fans = http_get_bilibili_fans();
-        if (fans >= 0) {
-            g_fans = fans;
-
-            if (fans_change_cb != NULL) {
-                fans_change_cb(fans);
-            }
-        }
-        vTaskDelay(pdMS_TO_TICKS(120000));
-    }
-}
-
-void http_bilibili_task_start() {
-    ESP_LOGI(TAG, "Start http_bilibili_task");
-    xTaskCreate(http_bilibili_task, "http bilibili task", 6 * 1024, NULL, 5, NULL);
 }
