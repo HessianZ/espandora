@@ -12,10 +12,18 @@
 #include "ui_book.h"
 #include "constants.h"
 #include "file_manager.h"
+#include "ui_book_read.h"
 
 static const char *TAG = "ui_book";
 
 static void (*g_book_end_cb)(void) = NULL;
+
+static void book_read_end_cb(void)
+{
+    ESP_LOGI(TAG, "book read end");
+
+    ui_book_start(g_book_end_cb);
+}
 
 
 static void ui_book_page_return_click_cb(lv_event_t *e)
@@ -33,27 +41,21 @@ static void ui_book_page_return_click_cb(lv_event_t *e)
 
 static void btn_event_cb(lv_event_t *event)
 {
-    lv_obj_t *img = (lv_obj_t *) event->user_data;
     const char *file_name = lv_list_get_btn_text(lv_obj_get_parent(event->target), event->target);
     char *file_name_with_path = (char *) heap_caps_malloc(256, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
 
     if (NULL != file_name_with_path) {
         /* Get full file name with mount point and folder path */
-        strcpy(file_name_with_path, "S:/spiffs/");
+        strcpy(file_name_with_path, "/spiffs/");
         strcat(file_name_with_path, file_name);
 
-        /* Set src of image with file name */
-        lv_img_set_src(img, file_name_with_path);
-
-        /* Align object */
-        lv_obj_align(img, LV_ALIGN_CENTER, 80, 0);
-
-        /* Only for debug */
-        ESP_LOGI(TAG, "Display image file : %s", file_name_with_path);
-
-        /* Don't forget to free allocated memory */
-        free(file_name_with_path);
+        if (ui_get_btn_op_group()) {
+            lv_group_remove_all_objs(ui_get_btn_op_group());
+        }
+        ui_book_read_start(book_read_end_cb, file_name_with_path);
     }
+
+    free(file_name_with_path);
 }
 
 static lv_obj_t* render_book_list(lv_obj_t *parent)

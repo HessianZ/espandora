@@ -29,7 +29,7 @@
 static const char *TAG = "ui_main";
 
 LV_FONT_DECLARE(font_icon_16);
-LV_FONT_DECLARE(font_cn_gb1_28);
+LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
 
 static int g_item_index = 0;
 static lv_group_t *g_btn_op_group = NULL;
@@ -182,9 +182,11 @@ static item_desc_t item[] = {
     { .name = "关于",      .img_src = (void *) &icon_about_us},
 };
 
-#define PAGE_BOOK_INDEX 0
-#define PAGE_NET_CONFIG_INDEX 1
-#define PAGE_ABOUT_US_INDEX 2
+static enum page_index_t {
+    PAGE_BOOK_INDEX,
+    PAGE_NET_CONFIG_INDEX,
+    PAGE_ABOUT_US_INDEX,
+};
 
 static lv_obj_t *g_img_btn, *g_img_item = NULL;
 static lv_obj_t *g_lab_item = NULL;
@@ -395,7 +397,7 @@ static void ui_main_menu(int32_t index_id)
 
     g_lab_item = lv_label_create(obj);
     lv_label_set_text_static(g_lab_item, item[index_id].name);
-    lv_obj_set_style_text_font(g_lab_item, &font_cn_gb1_28, LV_PART_MAIN);
+    lv_obj_set_style_text_font(g_lab_item, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
     lv_obj_align(g_lab_item, LV_ALIGN_CENTER, 0, 60);
 
     int g_led_count = sizeof(g_led_item) / sizeof(g_led_item[0]);
@@ -541,9 +543,7 @@ esp_err_t ui_main_start(void)
     ui_sr_anim_init();
 
     boot_animate_start(ui_after_boot);
-#if CONFIG_BSP_BOARD_ESP32_S3_BOX
-    ui_mute_init();
-#endif
+
     ui_release();
     return ESP_OK;
 }

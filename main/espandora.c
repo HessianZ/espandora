@@ -64,7 +64,7 @@ void app_main(void)
     bsp_display_start();
     bsp_board_init();
 
-    TraverseDir("/spiffs", 0, 1);
+//    TraverseDir("/spiffs", 0, 1);
 
     ESP_LOGI(TAG, "GUI start");
     bsp_display_backlight_on();
