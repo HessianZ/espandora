@@ -23,6 +23,8 @@
 #include "ui_net_config.h"
 #include "ui_boot_animate.h"
 #include "http.h"
+#include "ui_about_us.h"
+#include "ui_book.h"
 
 static const char *TAG = "ui_main";
 
@@ -148,6 +150,12 @@ static void about_us_end_cb(void)
     ui_main_menu(g_item_index);
 }
 
+static void book_end_cb(void)
+{
+    ESP_LOGI(TAG, "book end");
+    ui_main_menu(g_item_index);
+}
+
 static void net_end_cb(void)
 {
     ESP_LOGI(TAG, "net end");
@@ -173,6 +181,10 @@ static item_desc_t item[] = {
     { .name = "网络设置",   .img_src = (void *) &icon_network},
     { .name = "关于",      .img_src = (void *) &icon_about_us},
 };
+
+#define PAGE_BOOK_INDEX 0
+#define PAGE_NET_CONFIG_INDEX 1
+#define PAGE_ABOUT_US_INDEX 2
 
 static lv_obj_t *g_img_btn, *g_img_item = NULL;
 static lv_obj_t *g_lab_item = NULL;
@@ -323,30 +335,17 @@ static void menu_enter_cb(lv_event_t *e)
         g_focus_last_obj = NULL;
 
         switch (g_item_index) {
-        case 0:
+        case PAGE_BOOK_INDEX:
             ui_status_bar_set_visible(true);
-//            ui_device_ctrl_start(dev_ctrl_end_cb);
+            ui_book_start(book_end_cb);
             break;
-        case 1:
+        case PAGE_NET_CONFIG_INDEX:
             ui_status_bar_set_visible(true);
             ui_net_config_start(net_end_cb);
             break;
-        case 2:
+        case PAGE_ABOUT_US_INDEX:
             ui_status_bar_set_visible(true);
-//            ui_media_player(player_end_cb);
-            break;
-        case 3:
-            ui_status_bar_set_visible(false);
-            ui_help();
-            break;
-        case 4:
-            ui_status_bar_set_visible(true);
-//            ui_about_us_start(about_us_end_cb);
-            break;
-        case 5:
-            ui_status_bar_set_visible(true);
-
-//            ESP_LOGI(TAG, "FANSFANSFANS = %s\n", bilibili_fans);
+            ui_about_us_start(about_us_end_cb);
             break;
         default:
             break;
