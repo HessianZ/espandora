@@ -10,30 +10,43 @@
 #include "settings.h"
 #include "ui_main.h"
 #include "ui_book.h"
-#include "constants.h"
-#include "file_manager.h"
 #include "ui_book_read.h"
+#include "string.h"
+
+#define MAX_BOOKS 10
 
 static const char *TAG = "ui_book";
 
 static void (*g_book_end_cb)(void) = NULL;
 
+static lv_obj_t *g_page = NULL;
+
+static BookInfo *g_book_list = NULL;
+static uint16_t g_book_count = 0;
+
 static void book_read_end_cb(void)
 {
     ESP_LOGI(TAG, "book read end");
 
-    ui_book_start(g_book_end_cb);
+    ui_book_start(NULL);
 }
 
-
-static void ui_book_page_return_click_cb(lv_event_t *e)
+static void ui_book_free()
 {
-    lv_obj_t *obj = lv_event_get_user_data(e);
     if (ui_get_btn_op_group()) {
         lv_group_remove_all_objs(ui_get_btn_op_group());
     }
 
-    lv_obj_del(obj);
+    lv_obj_del(g_page);
+    g_page = NULL;
+
+    free(g_book_list);
+}
+
+static void ui_book_page_return_click_cb(lv_event_t *e)
+{
+    ui_book_free();
+
     if (g_book_end_cb) {
         g_book_end_cb();
     }
@@ -41,29 +54,50 @@ static void ui_book_page_return_click_cb(lv_event_t *e)
 
 static void btn_event_cb(lv_event_t *event)
 {
-    const char *file_name = lv_list_get_btn_text(lv_obj_get_parent(event->target), event->target);
-    char *file_name_with_path = (char *) heap_caps_malloc(256, MALLOC_CAP_INTERNAL | MALLOC_CAP_8BIT);
+    BookInfo* bookInfo = (BookInfo*)lv_event_get_user_data(event);
 
-    if (NULL != file_name_with_path) {
-        /* Get full file name with mount point and folder path */
-        strcpy(file_name_with_path, "/spiffs/");
-        strcat(file_name_with_path, file_name);
+    ui_book_free();
 
-        if (ui_get_btn_op_group()) {
-            lv_group_remove_all_objs(ui_get_btn_op_group());
-        }
-        ui_book_read_start(book_read_end_cb, file_name_with_path);
+    ui_book_read_start(book_read_end_cb, bookInfo);
+}
+
+static esp_err_t read_book_name(const char *file_name, char *book_name)
+{
+    char file_name_with_path[128];
+    sprintf(file_name_with_path, "/spiffs/%s", file_name);
+    FILE *fp = fopen(file_name_with_path, "r");
+
+    if (NULL == fp) {
+        ESP_LOGE(TAG, "Failed to open file %s", file_name_with_path);
+        return ESP_FAIL;
     }
 
-    free(file_name_with_path);
+    char *ret = fgets(book_name, BOOK_NAME_MAX_LEN, fp);
+    if (ret == NULL || ret == EOF) {
+        ESP_LOGE(TAG, "Failed to read file %s", file_name_with_path);
+        return ESP_FAIL;
+    }
+    book_name[strlen(book_name) - 1] = '\0';
+    ESP_LOGI(TAG, "book name: %s", book_name);
+
+    fclose(fp);
+
+    return ESP_OK;
 }
 
 static lv_obj_t* render_book_list(lv_obj_t *parent)
 {
+    ESP_LOGI(TAG, "render_book_list()");
+
+    g_book_list = (BookInfo *) malloc(sizeof(BookInfo) * MAX_BOOKS);
+    g_book_count = 0;
+
     lv_obj_t *list = lv_list_create(parent);
     lv_obj_set_size(list, lv_obj_get_width(parent) - 30, lv_obj_get_height(parent) - 30);
     lv_obj_set_style_border_width(list, 0, LV_STATE_DEFAULT);
     lv_obj_align(list, LV_ALIGN_LEFT_MID, 0, 30);
+    LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
+    lv_obj_set_style_text_font(list, &font_HarmonyOS_Sans_Light_16, LV_PART_ITEMS);
 
     /* Get file name in storage */
     struct dirent *p_dirent = NULL;
@@ -79,9 +113,18 @@ static lv_obj_t* render_book_list(lv_obj_t *parent)
             if (strstr(p_dirent->d_name, ".txt") == NULL) {
                 continue;
             }
-            lv_obj_t *btn = lv_list_add_btn(list, LV_SYMBOL_FILE, p_dirent->d_name);
+
+            g_book_list[g_book_count].name[0] = '\0';
+            g_book_list[g_book_count].path[0] = '\0';
+            strcpy(g_book_list[g_book_count].path, p_dirent->d_name);
+            read_book_name(p_dirent->d_name, &g_book_list[g_book_count].name);
+
+            lv_obj_t *btn = lv_list_add_btn(list, LV_SYMBOL_FILE, &g_book_list[g_book_count].name);
+            lv_obj_set_style_text_font(btn, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
             lv_group_add_obj(g_btn_op_group, btn);
-            lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, (void *) btn);
+            lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, &g_book_list[g_book_count]);
+
+            g_book_count++;
         } else {
             closedir(p_dir_stream);
             break;
@@ -93,20 +136,24 @@ static lv_obj_t* render_book_list(lv_obj_t *parent)
 
 void ui_book_start(void (*fn)(void))
 {
-    g_book_end_cb = fn;
+    ESP_LOGI(TAG, "ui_book_start()");
+
+    if (fn != NULL) {
+        g_book_end_cb = fn;
+    }
 
     // PAGE
-    lv_obj_t *page = lv_obj_create(lv_scr_act());
-    lv_obj_set_size(page, 290, 190);
-    lv_obj_clear_flag(page, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(page, 15, LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(page, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(page, 20, LV_PART_MAIN);
-    lv_obj_set_style_shadow_opa(page, LV_OPA_30, LV_PART_MAIN);
-    lv_obj_align(page, LV_ALIGN_TOP_MID, 0, 40);
+    g_page = lv_obj_create(lv_scr_act());
+    lv_obj_set_size(g_page, 290, 190);
+    lv_obj_clear_flag(g_page, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_radius(g_page, 15, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(g_page, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_shadow_width(g_page, 20, LV_PART_MAIN);
+    lv_obj_set_style_shadow_opa(g_page, LV_OPA_30, LV_PART_MAIN);
+    lv_obj_align(g_page, LV_ALIGN_TOP_MID, 0, 40);
 
     // RETURN BUTTON
-    lv_obj_t *btn_return = lv_btn_create(page);
+    lv_obj_t *btn_return = lv_btn_create(g_page);
     lv_obj_set_size(btn_return, 24, 24);
     lv_obj_add_style(btn_return, &ui_button_styles()->style, 0);
     lv_obj_add_style(btn_return, &ui_button_styles()->style_pr, LV_STATE_PRESSED);
@@ -117,16 +164,12 @@ void ui_book_start(void (*fn)(void))
     lv_label_set_text_static(lab_btn_text, LV_SYMBOL_LEFT);
     lv_obj_set_style_text_color(lab_btn_text, lv_color_make(158, 158, 158), LV_STATE_DEFAULT);
     lv_obj_center(lab_btn_text);
-    lv_obj_add_event_cb(btn_return, ui_book_page_return_click_cb, LV_EVENT_CLICKED, page);
+    lv_obj_add_event_cb(btn_return, ui_book_page_return_click_cb, LV_EVENT_CLICKED, g_page);
 
     if (ui_get_btn_op_group()) {
         lv_group_add_obj(ui_get_btn_op_group(), btn_return);
     }
 
-    lv_obj_t* list = render_book_list(page);
-
-    lv_obj_t *lab = lv_label_create(page);
-    lv_label_set_text(lab, "完整书名");
-    lv_obj_align(lab, LV_ALIGN_TOP_MID, 50, 0);
+    lv_obj_t* list = render_book_list(g_page);
 }
 

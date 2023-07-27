@@ -61,29 +61,31 @@ void ui_about_us_start(void (*fn)(void))
         lv_group_add_obj(ui_get_btn_op_group(), btn_return);
     }
 
-    const sys_param_t *param = settings_get_parameter();
     const boards_info_t *board = bsp_board_get_info();
-    LV_IMG_DECLARE(icon_box_lite);
+    LV_IMG_DECLARE(logo_jiong);
     lv_obj_t *img = lv_img_create(page);
-    lv_obj_align(img, LV_ALIGN_TOP_MID, 0, 20);
+    lv_img_set_zoom(img, 96);
+//    lv_obj_set_size(img, 96, 96);
+    lv_obj_align(img, LV_ALIGN_LEFT_MID, -24, -10);
 
-    if (BOARD_S3_BOX_LITE == board->id) {
-        lv_img_set_src(img, &icon_box_lite);
-    }
+    lv_img_set_src(img, &logo_jiong);
 
     char msg[256] = {0};
     snprintf(msg, sizeof(msg),
-             "#000000 Software Ver: # "  "#888888 V%u.%u.%u#\n"
-             "#000000 ESP-IDF Ver: # "   "#888888 %s#\n"
-             "#000000 SR LANG: # "       "#888888 %s#\n"
-             "#000000 Board: # "         "#888888 %s#",
+             "#C62828 ESPANDORA v%u.%u.%u#\n"
+             "#000000 Author: # "        "#888888 囧大大王#\n"
+             "#000000 Board: # "         "#888888 %s#\n"
+             "#000000 ESP-IDF Ver: # "   "#888888 %s#",
              ESPANDORA_VERSION_MAJOR, ESPANDORA_VERSION_MINOR, ESPANDORA_VERSION_PATCH,
-             esp_get_idf_version(),
-             SR_LANG_EN == param->sr_lang ? "English" : "Chinese",
-             board->name);
+             board->name,
+             esp_get_idf_version()
+             );
 
     lv_obj_t *lab = lv_label_create(page);
     lv_label_set_recolor(lab, true);
     lv_label_set_text(lab, msg);
-    lv_obj_align(lab, LV_ALIGN_BOTTOM_LEFT, 0, -10);
+//    lv_obj_align(lab, LV_ALIGN_LEFT_MID, 0, -10);
+    lv_obj_align_to(lab, img, LV_ALIGN_OUT_RIGHT_MID, -24, 0);
+    LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
+    lv_obj_set_style_text_font(lab, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
 }

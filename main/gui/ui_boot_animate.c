@@ -22,9 +22,9 @@ static void anim_timer_cb(lv_timer_t *timer)
     static lv_obj_t *img_text = NULL;
 
     if (-90 == count) {
-        LV_IMG_DECLARE(esp_logo);
+        LV_IMG_DECLARE(logo_jiong);
         img_logo = lv_img_create(page);
-        lv_img_set_src(img_logo, &esp_logo);
+        lv_img_set_src(img_logo, &logo_jiong);
         lv_obj_center(img_logo);
     }
 

@@ -10,6 +10,7 @@
 #include <locale.h>
 
 #include "ui_book_read.h"
+#include "bsp_board.h"
 
 #define PAGE_MAX_LINE 9
 #define CHAR_IS_ASCII(value)              ((value & 0x80U) == 0x00U)
@@ -32,17 +33,21 @@ static char *content = NULL;
 
 LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
 
-static void ui_book_read_page_return_click_cb(lv_event_t *e)
+static void ui_book_read_page_return_click_cb(void *button_handle, void *usr_data)
 {
-    ESP_LOGI(TAG, "ui_book_read_page_return_click_cb code: %d", e->code);
+    ESP_LOGI(TAG, "ui_book_read_page_return_click_cb ");
 
-    lv_obj_t *obj = lv_event_get_user_data(e->user_data);
+    lv_obj_t *obj = (lv_obj_t *)usr_data;
 
-    lv_obj_del(obj);
     // unregister button callback
+    bsp_btn_register_callback(BOARD_BTN_ID_BOOT, BUTTON_SINGLE_CLICK, NULL, NULL);
 
     if (ui_get_btn_op_group()) {
         lv_group_remove_all_objs(ui_get_btn_op_group());
+    }
+
+    if (obj != NULL) {
+        lv_obj_del(obj);
     }
 
     if (g_book_read_file_handle != NULL) {
@@ -60,6 +65,11 @@ static void ui_book_read_page_return_click_cb(lv_event_t *e)
     if (g_book_read_end_cb) {
         g_book_read_end_cb();
     }
+}
+
+static void ui_book_read_page_return_click_lvcb(lv_event_t *e)
+{
+    ui_book_read_page_return_click_cb(NULL, e->user_data);
 }
 
 static int read_cjk_char(FILE *fp, char *dest, uint8_t *len)
@@ -98,9 +108,11 @@ static int read_cjk_char(FILE *fp, char *dest, uint8_t *len)
     return 0;
 }
 
-//void ui_book_read_page_next_click_cb(void *button_handle, void *usr_data)
-void ui_book_read_page_next_click_cb(lv_event_t *e)
+
+static void render_next_page()
 {
+    ESP_LOGI(TAG, "render_next_page() ");
+
     size_t size = sizeof(char) * g_page_max_length;
     memset(content, 0, size);
 
@@ -124,7 +136,7 @@ void ui_book_read_page_next_click_cb(lv_event_t *e)
             ESP_LOGI(TAG, "read_cjk_char char_len == 0");
             continue;
         }
-        ESP_LOGI(TAG, "read_cjk_char -- %s:%d", c, char_len);
+//        ESP_LOGI(TAG, "read_cjk_char -- %s:%d", c, char_len);
 
         line_len += char_len;
         page_len += char_len;
@@ -143,20 +155,21 @@ void ui_book_read_page_next_click_cb(lv_event_t *e)
         if (line_chars > 15) {
             lv_coord_t line_width = lv_txt_get_width(&line, line_len, &font_HarmonyOS_Sans_Light_16, letter_space, LV_TEXT_FLAG_NONE);
 
-            ESP_LOGI(TAG, "line_width : %d", line_width);
+//            ESP_LOGI(TAG, "line_width : %d", line_width);
 
             if (line_width > 280) {
-                ESP_LOGI(TAG, "FORCE BREAK");
+//                ESP_LOGI(TAG, "LINE BREAK: x overflow");
                 strcat(&line, "\n");
                 page_len++;
                 line_len ++;
                 new_line = true;
             }
         }
+
         if (new_line) {
             lines ++;
             line[line_len] = '\0';
-            ESP_LOGI(TAG, "LINE[%d:%d] : %s", line_len, line_chars, line);
+//            ESP_LOGI(TAG, "LINE[%d:%d] : %s", line_len, line_chars, line);
             strcat(content, &line);
             line[0] = '\0';
             line_chars = 0;
@@ -178,6 +191,25 @@ void ui_book_read_page_next_click_cb(lv_event_t *e)
     lv_label_set_text_static(g_label_content, content);
 }
 
+//void ui_book_read_page_next_click_cb(void *button_handle, void *usr_data)
+void ui_book_read_page_next_click_cb(lv_event_t *e)
+{
+    if (e == NULL) {
+        return;
+    }
+
+    ESP_LOGI(TAG, "ui_book_read_page_next_click_cb event: %d", e->code);
+
+    if (e->code == LV_EVENT_KEY) {
+        ESP_LOGI(TAG, "ui_book_read_page_next_click_cb key: %d", lv_indev_get_key(lv_indev_get_act()));
+    }
+
+    if (e->code == LV_EVENT_CLICKED) {
+        render_next_page();
+    }
+}
+
+/*
 void ui_book_read_start(void (*fn)(void), const char* filename)
 {
     ESP_LOGI(TAG, "ui_book_read_start file: %s", filename);
@@ -202,21 +234,70 @@ void ui_book_read_start(void (*fn)(void), const char* filename)
     lv_obj_align(g_label_content, LV_ALIGN_TOP_MID, 0, 0);
 
     // RETURN BUTTON
-    lv_obj_add_event_cb(g_label_content, ui_book_read_page_next_click_cb, LV_EVENT_CLICKED, page);
-    if (ui_get_btn_op_group()) {
-        lv_group_add_obj(ui_get_btn_op_group(), g_label_content);
+    bsp_btn_register_callback(BOARD_BTN_ID_BOOT, BUTTON_SINGLE_CLICK, ui_book_read_page_return_click_cb, page);
+}
+*/
+
+
+void ui_book_read_start(void (*fn)(void), const BookInfo *bookInfo)
+{
+    char *filename = (char *) malloc(128);
+
+    if (NULL != filename) {
+        /* Get full file name with mount point and folder path */
+        strcpy(filename, "/spiffs/");
+        strcat(filename, bookInfo->path);
     }
 
-    g_book_read_file_handle = fopen(g_book_read_filename, "r");
+    ESP_LOGI(TAG, "ui_book_read_start file: %s", filename);
 
-    if (g_book_read_file_handle == NULL) {
-        ESP_LOGE(TAG, "Failed to open file for reading");
-        lv_label_set_text_static(g_label_content, "文件读取失败");
-        return;
-    }
+    g_book_read_end_cb = fn;
+
+    g_book_read_filename = malloc(strlen(filename) + 1);
+    strcpy(g_book_read_filename, filename);
+    free(filename);
+
+    lv_obj_t * win = lv_win_create(lv_scr_act(), 40);
+    lv_obj_t * btn;
+    btn = lv_win_add_btn(win, LV_SYMBOL_LEFT, 40);
+    lv_obj_add_event_cb(btn, ui_book_read_page_next_click_cb, LV_EVENT_CLICKED, NULL);
+    lv_group_add_obj(ui_get_btn_op_group(), btn);
+
+    lv_obj_t *title_label = lv_win_add_title(win, "placeholder");
+    lv_obj_set_style_text_font(title_label, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_label_set_text(title_label, bookInfo->name);
+
+    btn = lv_win_add_btn(win, LV_SYMBOL_RIGHT, 40);
+    lv_obj_add_event_cb(btn, ui_book_read_page_next_click_cb, LV_EVENT_CLICKED, NULL);
+    lv_group_add_obj(ui_get_btn_op_group(), btn);
+
+    btn = lv_win_add_btn(win, LV_SYMBOL_CLOSE, 60);
+    lv_obj_add_event_cb(btn, ui_book_read_page_return_click_lvcb, LV_EVENT_CLICKED, win);
+    lv_group_add_obj(ui_get_btn_op_group(), btn);
+
+    lv_obj_t * cont = lv_win_get_content(win);  /*Content can be added here*/
+    lv_obj_clear_flag(cont, LV_OBJ_FLAG_SCROLLABLE);
+
+    // RETURN BUTTON
+    bsp_btn_register_callback(BOARD_BTN_ID_BOOT, BUTTON_SINGLE_CLICK, ui_book_read_page_return_click_cb, win);
+
+
+    // MAIN CONTENT
+    g_label_content = lv_label_create(cont);
+    lv_obj_set_size(g_label_content, 300, 190);
+    lv_label_set_text_static(g_label_content, "loading...");
+    lv_obj_set_style_text_font(g_label_content, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_label_set_long_mode(g_label_content, LV_LABEL_LONG_CLIP);
+    lv_obj_align(g_label_content, LV_ALIGN_TOP_MID, 0, 0);
 
     size_t size = sizeof(char) * g_page_max_length;
     content = malloc(size);
-    ui_book_read_page_next_click_cb(NULL);
+    g_book_read_file_handle = fopen(g_book_read_filename, "r");
+    if (g_book_read_file_handle == NULL) {
+        ESP_LOGE(TAG, "Failed to open file for reading");
+        lv_label_set_text_static(g_label_content, "文件读取失败");
+    } else {
+        render_next_page();
+    }
 }
 

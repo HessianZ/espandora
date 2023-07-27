@@ -142,7 +142,7 @@ int play_weather()
         num2cn(atoi(weather->humi), &humiCn);
         num2cn(atoi(weather->windSpeed), &windSpeedCn);
 
-        sprintf(str, "%s %s\n%s摄氏度 %s%%\n%s%s级",
+        sprintf(str, "%s %s %s℃ 湿度%s%% %s%s级",
                 weather->city,
                 weather->weather,
                 weather->temp,

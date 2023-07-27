@@ -139,7 +139,7 @@ void ui_net_config_update_cb(ui_net_state_t state, void *args)
         /* code */
         break;
     case UI_NET_EVT_GET_NAME: {
-        LV_IMG_DECLARE(esp_logo_tiny);
+        LV_IMG_DECLARE(logo_jiong);
         const char *prov_msg = app_wifi_get_prov_payload();
         size_t prov_msg_len = strlen(prov_msg);
         g_qr = lv_qrcode_create(g_page, 108, lv_color_black(), lv_color_white());
@@ -158,7 +158,7 @@ void ui_net_config_update_cb(ui_net_state_t state, void *args)
         }
         lv_obj_align(g_qr, LV_ALIGN_TOP_MID, 0, 8);
         lv_obj_t *img = lv_img_create(g_qr);
-        lv_img_set_src(img, &esp_logo_tiny);
+        lv_img_set_src(img, &logo_jiong);
         lv_obj_center(img);
         lv_qrcode_update(g_qr, prov_msg, prov_msg_len);
         lv_obj_clear_flag(g_hint_lab, LV_OBJ_FLAG_HIDDEN);

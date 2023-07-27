@@ -174,10 +174,11 @@ typedef struct {
 
 LV_IMG_DECLARE(icon_about_us)
 LV_IMG_DECLARE(icon_network)
-LV_IMG_DECLARE(icon_bilibili)
+LV_IMG_DECLARE(icon_book)
+//LV_IMG_DECLARE(icon_bilibili)
 
 static item_desc_t item[] = {
-    { .name = "书籍",      .img_src = (void *) &icon_bilibili},
+    { .name = "书籍",      .img_src = (void *) &icon_book},
     { .name = "网络设置",   .img_src = (void *) &icon_network},
     { .name = "关于",      .img_src = (void *) &icon_about_us},
 };
@@ -403,6 +404,9 @@ static void ui_main_menu(int32_t index_id)
     int g_led_count = sizeof(g_led_item) / sizeof(g_led_item[0]);
     short g_led_size = 5;
     short gap = 10;
+    short outer_width =  g_led_size * g_led_count + gap * (g_led_count - 1);
+    short half_width =  outer_width / 2;
+    short offset_x = (g_led_size) / 2;
     for (size_t i = 0; i < g_led_count; i++) {
         if (NULL == g_led_item[i]) {
             g_led_item[i] = lv_led_create(g_page_menu);
@@ -411,8 +415,8 @@ static void ui_main_menu(int32_t index_id)
         }
         lv_led_off(g_led_item[i]);
         lv_obj_set_size(g_led_item[i], g_led_size, g_led_size);
-        int g_led_item_off_x = 2 * gap * i - g_led_count * gap;
-        lv_obj_align_to(g_led_item[i], g_page_menu, LV_ALIGN_BOTTOM_MID, g_led_item_off_x, 0);
+        int g_led_item_off_x = i / (g_led_count-1.0) * outer_width - half_width;
+        lv_obj_align_to(g_led_item[i], g_page_menu, LV_ALIGN_BOTTOM_MID, g_led_item_off_x - offset_x, 0);
     }
     lv_led_on(g_led_item[index_id]);
 
@@ -496,7 +500,31 @@ static void clock_run_cb(lv_timer_t *timer)
     struct tm timeinfo;
     time(&now);
     localtime_r(&now, &timeinfo);
-    lv_label_set_text_fmt(lab_time, "%02u:%02u", timeinfo.tm_hour, timeinfo.tm_min);
+    lv_label_set_text_fmt(lab_time, "%02u-%02u %02u:%02u", timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min);
+}
+
+
+static void weather_run_cb(lv_timer_t *timer)
+{
+    lv_obj_t *lab_weather = (lv_obj_t *) timer->user_data;
+    weather_result_t result;
+    esp_err_t ret = http_get_weather(&result);
+    if (ret != ESP_OK) {
+        ESP_LOGE(TAG, "http_get_weather failed");
+        return;
+    }
+
+    lv_label_set_text_fmt(lab_weather, "%s %s %s℃", result.city, result.weather, result.temp);
+}
+
+void weather_run_task(void *timer2)
+{
+    while (!app_wifi_is_connected()) {
+        vTaskDelay(pdMS_TO_TICKS(1000));
+    }
+
+    weather_run_cb((lv_timer_t *)timer2);
+    vTaskDelete(NULL);
 }
 
 esp_err_t ui_main_start(void)
@@ -507,14 +535,16 @@ esp_err_t ui_main_start(void)
 
     lv_indev_t *indev = lv_indev_get_next(NULL);
 
-    if ((lv_indev_get_type(indev) == LV_INDEV_TYPE_KEYPAD) || \
-            lv_indev_get_type(indev) == LV_INDEV_TYPE_ENCODER) {
+    lv_indev_type_t indev_type = lv_indev_get_type(indev);
+
+    if ((indev_type == LV_INDEV_TYPE_KEYPAD) || \
+            indev_type == LV_INDEV_TYPE_ENCODER) {
         ESP_LOGI(TAG, "Input device type is keypad");
         g_btn_op_group = lv_group_create();
         lv_indev_set_group(indev, g_btn_op_group);
-    } else if (lv_indev_get_type(indev) == LV_INDEV_TYPE_BUTTON) {
+    } else if (indev_type == LV_INDEV_TYPE_BUTTON) {
         ESP_LOGI(TAG, "Input device type have button");
-    } else if (lv_indev_get_type(indev) == LV_INDEV_TYPE_POINTER) {
+    } else if (indev_type == LV_INDEV_TYPE_POINTER) {
         ESP_LOGI(TAG, "Input device type have pointer");
     }
 
@@ -529,13 +559,21 @@ esp_err_t ui_main_start(void)
     lv_obj_align(g_status_bar, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_t *lab_time = lv_label_create(g_status_bar);
-    lv_label_set_text_static(lab_time, "23:59");
+    lv_label_set_text_static(lab_time, "12-12 23:59");
     lv_obj_align(lab_time, LV_ALIGN_LEFT_MID, 0, 0);
     lv_timer_t *timer = lv_timer_create(clock_run_cb, 1000, (void *) lab_time);
     clock_run_cb(timer);
 
+    lv_obj_t *lab_weather = lv_label_create(g_status_bar);
+    lv_obj_set_style_text_font(lab_weather, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_label_set_text_static(lab_weather, "梅州 多云 25℃");
+//    lv_obj_align(lab_time, LV_ALIGN_LEFT_MID, 10, 0);
+    lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+    lv_timer_t *timer2 = lv_timer_create(weather_run_cb, 120*1000, (void *) lab_weather);
+    xTaskCreate(weather_run_task, "weather_run_task", 1024*4, timer2, 5, NULL);
+
     g_lab_wifi = lv_label_create(g_status_bar);
-    lv_obj_align_to(g_lab_wifi, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+    lv_obj_align_to(g_lab_wifi, lab_weather, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 
     ui_status_bar_set_visible(0);
 
