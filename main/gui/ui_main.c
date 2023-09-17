@@ -26,20 +26,20 @@
 #include "ui_about_us.h"
 #include "ui_book.h"
 
+
+#define ENABLE_BOOT_ANIMATION 0
+
+
 static const char *TAG = "ui_main";
 
 LV_FONT_DECLARE(font_icon_16);
-LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
+LV_FONT_DECLARE(ESPANDORA_MAIN_FONT);
 
 static int g_item_index = 0;
 static lv_group_t *g_btn_op_group = NULL;
 static button_style_t g_btn_styles;
 static lv_obj_t *g_page_menu = NULL;
 
-/* Creates a semaphore to handle concurrent call to lvgl stuff
- * If you wish to call *any* lvgl function from other threads/tasks
- * you should lock on the very same semaphore! */
-SemaphoreHandle_t g_guisemaphore;
 static lv_obj_t *g_lab_wifi = NULL;
 static lv_obj_t *g_status_bar = NULL;
 
@@ -195,7 +195,6 @@ static lv_obj_t *g_led_item[3];
 static size_t g_item_size = sizeof(item) / sizeof(item[0]);
 
 static lv_obj_t *g_focus_last_obj = NULL;
-static lv_obj_t *g_group_list[3] = {0};
 
 static uint32_t menu_get_num_offset(uint32_t focus, int32_t max, int32_t offset)
 {
@@ -221,13 +220,13 @@ static int8_t menu_direct_probe(lv_obj_t *focus_obj)
 
     index_focus = 0;
     index_prev = 0;
-    index_max_sz = sizeof(g_group_list)/ sizeof(g_group_list[0]);
+    index_max_sz = sizeof(g_led_item)/ sizeof(g_led_item[0]);
 
     for(int i = 0; i< index_max_sz; i++){
-        if(focus_obj == g_group_list[i]){
+        if(focus_obj == g_led_item[i]){
             index_focus = i;
         }
-        if(g_focus_last_obj == g_group_list[i]){
+        if(g_focus_last_obj == g_led_item[i]){
             index_prev = i;
         }
     }
@@ -252,71 +251,40 @@ void menu_new_item_select(lv_obj_t *obj)
     g_item_index = menu_get_num_offset(g_item_index, g_item_size, direct);
     ESP_LOGI(TAG, "slected:%d, direct:%d", g_item_index, direct);
 
-    lv_led_on(g_led_item[g_item_index]);
     lv_img_set_src(g_img_item, item[g_item_index].img_src);
     lv_label_set_text_static(g_lab_item, item[g_item_index].name);
 }
 
-#if CONFIG_BSP_BOARD_ESP32_S3_BOX_Lite
-static void menu_prev_cb(lv_event_t *e)
+static void led_on(lv_obj_t *obj)
+{
+    lv_obj_t *led = lv_obj_get_child(obj, 0);
+
+    lv_led_on(led);
+}
+
+
+static void led_off(lv_obj_t *obj)
+{
+    lv_obj_t *led = lv_obj_get_child(obj, 0);
+
+    lv_led_on(led);
+}
+
+static void menu_change_cb(lv_event_t *e)
 {
     lv_event_code_t code = lv_event_get_code(e);
     lv_obj_t *obj = lv_event_get_user_data(e);
 
-    if (LV_EVENT_FOCUSED == code) {
-        lv_led_off(g_led_item[g_item_index]);
-        menu_new_item_select(obj);
-    } else if (LV_EVENT_CLICKED == code) {
-        lv_event_send(g_img_btn, LV_EVENT_CLICKED, g_img_btn);
-
-    }
-}
-
-static void menu_next_cb(lv_event_t *e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-    lv_obj_t *obj = lv_event_get_user_data(e);
 
     if (LV_EVENT_FOCUSED == code) {
-        lv_led_off(g_led_item[g_item_index]);
+        led_on(obj);
         menu_new_item_select(obj);
+    } else if (LV_EVENT_DEFOCUSED == code) {
+        led_off(obj);
     } else if (LV_EVENT_CLICKED == code) {
         lv_event_send(g_img_btn, LV_EVENT_CLICKED, g_img_btn);
     }
 }
-#else
-static void menu_prev_cb(lv_event_t *e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-
-    if (LV_EVENT_RELEASED == code) {
-        lv_led_off(g_led_item[g_item_index]);
-        if (0 == g_item_index) {
-            g_item_index = g_item_size;
-        }
-        g_item_index--;
-        lv_led_on(g_led_item[g_item_index]);
-        lv_img_set_src(g_img_item, item[g_item_index].img_src);
-        lv_label_set_text_static(g_lab_item, item[g_item_index].name);
-    }
-}
-
-static void menu_next_cb(lv_event_t *e)
-{
-    lv_event_code_t code = lv_event_get_code(e);
-
-    if (LV_EVENT_RELEASED == code) {
-        lv_led_off(g_led_item[g_item_index]);
-        g_item_index++;
-        if (g_item_index >= g_item_size) {
-            g_item_index = 0;
-        }
-        lv_led_on(g_led_item[g_item_index]);
-        lv_img_set_src(g_img_item, item[g_item_index].img_src);
-        lv_label_set_text_static(g_lab_item, item[g_item_index].name);
-    }
-}
-#endif
 
 static void menu_enter_cb(lv_event_t *e)
 {
@@ -398,7 +366,7 @@ static void ui_main_menu(int32_t index_id)
 
     g_lab_item = lv_label_create(obj);
     lv_label_set_text_static(g_lab_item, item[index_id].name);
-    lv_obj_set_style_text_font(g_lab_item, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(g_lab_item, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
     lv_obj_align(g_lab_item, LV_ALIGN_CENTER, 0, 60);
 
     int g_led_count = sizeof(g_led_item) / sizeof(g_led_item[0]);
@@ -409,75 +377,24 @@ static void ui_main_menu(int32_t index_id)
     short offset_x = (g_led_size) / 2;
     for (size_t i = 0; i < g_led_count; i++) {
         if (NULL == g_led_item[i]) {
-            g_led_item[i] = lv_led_create(g_page_menu);
+            g_led_item[i] = lv_btn_create(g_page_menu);
+            lv_led_create(g_led_item[i]);
         } else {
             lv_obj_clear_flag(g_led_item[i], LV_OBJ_FLAG_HIDDEN);
         }
-        lv_led_off(g_led_item[i]);
+        led_off(g_led_item[i]);
         lv_obj_set_size(g_led_item[i], g_led_size, g_led_size);
         int g_led_item_off_x = i / (g_led_count-1.0) * outer_width - half_width;
         lv_obj_align_to(g_led_item[i], g_page_menu, LV_ALIGN_BOTTOM_MID, g_led_item_off_x - offset_x, 0);
+
+        if (ui_get_btn_op_group()) {
+            lv_group_add_obj(ui_get_btn_op_group(), g_led_item[i]);
+            lv_obj_add_event_cb(g_led_item[i], menu_change_cb, LV_EVENT_ALL, g_led_item[i]);
+        }
     }
-    lv_led_on(g_led_item[index_id]);
 
-    lv_obj_t *btn_prev = lv_btn_create(obj);
-    lv_obj_add_style(btn_prev, &ui_button_styles()->style_pr, LV_STATE_PRESSED);
-    lv_obj_add_style(btn_prev, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUS_KEY);
-    lv_obj_add_style(btn_prev, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUSED);
-
-    lv_obj_set_size(btn_prev, 40, 40);
-    lv_obj_set_style_bg_color(btn_prev, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_shadow_color(btn_prev, lv_color_make(0, 0, 0), LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(btn_prev, 15, LV_PART_MAIN);
-    lv_obj_set_style_shadow_opa(btn_prev, LV_OPA_50, LV_PART_MAIN);
-    lv_obj_set_style_shadow_ofs_x(btn_prev, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_ofs_y(btn_prev, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(btn_prev, 20, LV_PART_MAIN);
-    lv_obj_align_to(btn_prev, obj, LV_ALIGN_LEFT_MID, 0, 0);
-    lv_obj_t *label = lv_label_create(btn_prev);
-    lv_label_set_text_static(label, LV_SYMBOL_LEFT);
-    lv_obj_set_style_text_color(label, lv_color_make(5, 5, 5), LV_PART_MAIN);
-    lv_obj_center(label);
-    lv_obj_add_event_cb(btn_prev, menu_prev_cb, LV_EVENT_ALL, btn_prev);
-#if CONFIG_BSP_BOARD_ESP32_S3_BOX_Lite
-    if (ui_get_btn_op_group()) {
-        lv_group_add_obj(ui_get_btn_op_group(), btn_prev);
-    }
-    g_group_list[0] = btn_prev;
-#endif
-
-#if CONFIG_BSP_BOARD_ESP32_S3_BOX_Lite
-    if (ui_get_btn_op_group()) {
-        lv_group_add_obj(ui_get_btn_op_group(), g_img_btn);
-    }
-    g_group_list[1] = g_img_btn;
-#endif
-
-    lv_obj_t *btn_next = lv_btn_create(obj);
-    lv_obj_add_style(btn_next, &ui_button_styles()->style_pr, LV_STATE_PRESSED);
-    lv_obj_add_style(btn_next, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUS_KEY);
-    lv_obj_add_style(btn_next, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUSED);
-
-    lv_obj_set_size(btn_next, 40, 40);
-    lv_obj_set_style_bg_color(btn_next, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_shadow_color(btn_next, lv_color_make(0, 0, 0), LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(btn_next, 15, LV_PART_MAIN);
-    lv_obj_set_style_shadow_opa(btn_next, LV_OPA_50, LV_PART_MAIN);
-    lv_obj_set_style_shadow_ofs_x(btn_next, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_ofs_y(btn_next, 0, LV_PART_MAIN);
-    lv_obj_set_style_radius(btn_next, 20, LV_PART_MAIN);
-    lv_obj_align_to(btn_next, obj, LV_ALIGN_RIGHT_MID, 0, 0);
-    label = lv_label_create(btn_next);
-    lv_label_set_text_static(label, LV_SYMBOL_RIGHT);
-    lv_obj_set_style_text_color(label, lv_color_make(5, 5, 5), LV_PART_MAIN);
-    lv_obj_center(label);
-    lv_obj_add_event_cb(btn_next, menu_next_cb, LV_EVENT_ALL, btn_next);
-#if CONFIG_BSP_BOARD_ESP32_S3_BOX_Lite
-    if (ui_get_btn_op_group()) {
-        lv_group_add_obj(ui_get_btn_op_group(), btn_next);
-    }
-    g_group_list[2] = btn_next;
-#endif
+    led_on(g_led_item[index_id]);
+    g_focus_last_obj = g_led_item[index_id];
 }
 
 static void ui_after_boot(void)
@@ -565,7 +482,7 @@ esp_err_t ui_main_start(void)
     clock_run_cb(timer);
 
     lv_obj_t *lab_weather = lv_label_create(g_status_bar);
-    lv_obj_set_style_text_font(lab_weather, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(lab_weather, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
     lv_label_set_text_static(lab_weather, "梅州 多云 25℃");
 //    lv_obj_align(lab_time, LV_ALIGN_LEFT_MID, 10, 0);
     lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
@@ -577,10 +494,13 @@ esp_err_t ui_main_start(void)
 
     ui_status_bar_set_visible(0);
 
+#if ENABLE_BOOT_ANIMATION
     /* For speech animation */
     ui_sr_anim_init();
-
     boot_animate_start(ui_after_boot);
+#else
+    ui_after_boot();
+#endif
 
     ui_release();
     return ESP_OK;

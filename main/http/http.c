@@ -3,8 +3,6 @@
 #include <inttypes.h>
 #include <esp_http_client.h>
 #include <sys/param.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
 #include "esp_log.h"
 #include "nvs.h"
 
@@ -13,7 +11,6 @@
 #include "esp_crt_bundle.h"
 #include "http.h"
 #include "json_parser.h"
-#include "util.h"
 
 #define BILIBILI_UID "10442962"
 #define BILIBILI_FANS_URL "https://api.bilibili.com/x/relation/stat?vmid=" BILIBILI_UID "&jsonp=jsonp"
@@ -92,7 +89,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
             output_len = 0;
             break;
         case HTTP_EVENT_DISCONNECTED:
-            ESP_LOGI(TAG, "HTTP_EVENT_DISCONNECTED");
+            ESP_LOGD(TAG, "HTTP_EVENT_DISCONNECTED");
             int mbedtls_err = 0;
             esp_err_t err = esp_tls_get_and_clear_last_error((esp_tls_error_handle_t)evt->data, &mbedtls_err, NULL);
             if (err != 0) {
@@ -119,11 +116,12 @@ esp_err_t http_get_weather(weather_result_t *result)
 {
     ESP_LOGI(TAG, "Start http_get_weather ...");
 
-    char *response = malloc(5192);
+    char *response = calloc(8192, sizeof(char));
     esp_http_client_config_t config = {
             .url = WEATHER_URL,
             .event_handler = _http_event_handler,
             .crt_bundle_attach = esp_crt_bundle_attach,
+            .buffer_size = 8192 * sizeof(char),
             .user_data = response,
             .user_agent = USER_AGENT
     };
@@ -132,11 +130,13 @@ esp_err_t http_get_weather(weather_result_t *result)
     esp_err_t err = esp_http_client_perform(client);
 
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "HTTPS Status = %d, content_length = %"PRId64,
+        int64_t len = esp_http_client_get_content_length(client);
+        ESP_LOGD(TAG, "HTTPS Status = %d, content_length = %"PRId64,
                  esp_http_client_get_status_code(client),
-                 esp_http_client_get_content_length(client)
+                 len
         );
-        ESP_LOGI(TAG, "Response: %s", response);
+        response[len] = '\0';
+        ESP_LOGD(TAG, "Response: %s", response);
     } else {
         ESP_LOGE(TAG, "Error perform http request %s", esp_err_to_name(err));
     }
@@ -167,27 +167,27 @@ esp_err_t http_get_weather(weather_result_t *result)
         goto exception;
     }
 
-    if (json_obj_get_string(jctx, "cityname", &result->city, 10) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "cityname", result->city, 10) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: weather\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "temp", &result->temp, 5) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "temp", result->temp, 5) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: weather\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "SD", &result->humi, 5) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "SD", result->humi, 5) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: humi\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "weather", &result->weather, 12) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "weather", result->weather, 12) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: weather\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "WD", &result->wind, 12) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "WD", result->wind, 12) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: wind\n");
         goto exception;
     }
-    if (json_obj_get_string(jctx, "WS", &result->windSpeed, 10) != OS_SUCCESS) {
+    if (json_obj_get_string(jctx, "WS", result->windSpeed, 10) != OS_SUCCESS) {
         ESP_LOGE(TAG, "json_obj_get_int failed: windSpeed\n");
         goto exception;
     }
@@ -233,12 +233,12 @@ int http_get_bilibili_fans()
     esp_err_t err = esp_http_client_perform(client);
 
     if (err == ESP_OK) {
-        ESP_LOGI(TAG, "HTTPS Status = %d, content_length = %"PRId64,
+        ESP_LOGD(TAG, "HTTPS Status = %d, content_length = %"PRId64,
                  esp_http_client_get_status_code(client),
                  esp_http_client_get_content_length(client)
         );
         strstr(json, "}}")[2] = '\0';
-        ESP_LOGI(TAG, "Response: %s", json);
+        ESP_LOGD(TAG, "Response: %s", json);
     } else {
         ESP_LOGE(TAG, "Error perform http request %s", esp_err_to_name(err));
     }

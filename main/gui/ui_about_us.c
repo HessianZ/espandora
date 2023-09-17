@@ -86,6 +86,6 @@ void ui_about_us_start(void (*fn)(void))
     lv_label_set_text(lab, msg);
 //    lv_obj_align(lab, LV_ALIGN_LEFT_MID, 0, -10);
     lv_obj_align_to(lab, img, LV_ALIGN_OUT_RIGHT_MID, -24, 0);
-    LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
-    lv_obj_set_style_text_font(lab, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    LV_FONT_DECLARE(ESPANDORA_MAIN_FONT);
+    lv_obj_set_style_text_font(lab, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
 }

@@ -11,7 +11,7 @@
 
 static const char *TAG = "ui_sr";
 
-LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
+LV_FONT_DECLARE(ESPANDORA_MAIN_FONT);
 
 
 static bool g_sr_anim_active = false;
@@ -153,7 +153,7 @@ void ui_sr_anim_init(void)
 
     g_sr_label = lv_label_create(g_sr_mask);
     lv_label_set_text_static(g_sr_label, "----");
-    lv_obj_set_style_text_font(g_sr_label, &font_HarmonyOS_Sans_Light_16, LV_STATE_DEFAULT);
+    lv_obj_set_style_text_font(g_sr_label, &ESPANDORA_MAIN_FONT, LV_STATE_DEFAULT);
     lv_obj_set_style_text_color(g_sr_label, lv_color_black(), LV_STATE_DEFAULT);
     lv_obj_align(g_sr_label, LV_ALIGN_CENTER, 0, 80);
     lv_obj_add_event_cb(g_sr_label, sr_label_event_handler, LV_EVENT_VALUE_CHANGED, NULL);

@@ -9,6 +9,7 @@
 #include <stdbool.h>
 #include "esp_err.h"
 #include "lvgl.h"
+#include "constants.h"
 
 #ifdef __cplusplus
 extern "C" {

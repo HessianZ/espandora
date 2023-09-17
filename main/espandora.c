@@ -46,6 +46,8 @@ void wifi_task(void *args)
 
 void app_main(void)
 {
+    esp_log_level_set("ui_main", ESP_LOG_VERBOSE);
+
     ESP_LOGI(TAG, "Compile time: %s %s", __DATE__, __TIME__);
     /* Initialize NVS. */
     esp_err_t err = nvs_flash_init();
@@ -67,7 +69,7 @@ void app_main(void)
 //    TraverseDir("/spiffs", 0, 1);
 
     ESP_LOGI(TAG, "GUI start");
-    bsp_display_backlight_on();
+    bsp_display_brightness_set(75);
     ESP_ERROR_CHECK(ui_main_start());
 
     ESP_LOGI(TAG, "speech recognition start");

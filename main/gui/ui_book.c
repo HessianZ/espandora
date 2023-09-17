@@ -96,8 +96,8 @@ static lv_obj_t* render_book_list(lv_obj_t *parent)
     lv_obj_set_size(list, lv_obj_get_width(parent) - 30, lv_obj_get_height(parent) - 30);
     lv_obj_set_style_border_width(list, 0, LV_STATE_DEFAULT);
     lv_obj_align(list, LV_ALIGN_LEFT_MID, 0, 30);
-    LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
-    lv_obj_set_style_text_font(list, &font_HarmonyOS_Sans_Light_16, LV_PART_ITEMS);
+    LV_FONT_DECLARE(ESPANDORA_MAIN_FONT);
+    lv_obj_set_style_text_font(list, &ESPANDORA_MAIN_FONT, LV_PART_ITEMS);
 
     /* Get file name in storage */
     struct dirent *p_dirent = NULL;
@@ -120,7 +120,7 @@ static lv_obj_t* render_book_list(lv_obj_t *parent)
             read_book_name(p_dirent->d_name, &g_book_list[g_book_count].name);
 
             lv_obj_t *btn = lv_list_add_btn(list, LV_SYMBOL_FILE, &g_book_list[g_book_count].name);
-            lv_obj_set_style_text_font(btn, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+            lv_obj_set_style_text_font(btn, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
             lv_group_add_obj(g_btn_op_group, btn);
             lv_obj_add_event_cb(btn, btn_event_cb, LV_EVENT_CLICKED, &g_book_list[g_book_count]);
 

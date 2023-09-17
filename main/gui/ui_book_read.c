@@ -31,7 +31,7 @@ static uint16_t g_page_max_length = 500;
 
 static char *content = NULL;
 
-LV_FONT_DECLARE(font_HarmonyOS_Sans_Light_16);
+LV_FONT_DECLARE(ESPANDORA_MAIN_FONT);
 
 static void ui_book_read_page_return_click_cb(void *button_handle, void *usr_data)
 {
@@ -153,7 +153,7 @@ static void render_next_page()
         }
 
         if (line_chars > 15) {
-            lv_coord_t line_width = lv_txt_get_width(&line, line_len, &font_HarmonyOS_Sans_Light_16, letter_space, LV_TEXT_FLAG_NONE);
+            lv_coord_t line_width = lv_txt_get_width(&line, line_len, &ESPANDORA_MAIN_FONT, letter_space, LV_TEXT_FLAG_NONE);
 
 //            ESP_LOGI(TAG, "line_width : %d", line_width);
 
@@ -229,7 +229,7 @@ void ui_book_read_start(void (*fn)(void), const char* filename)
     g_label_content = lv_label_create(page);
     lv_obj_set_size(g_label_content, 290, 190);
     lv_label_set_text_static(g_label_content, "loading...");
-    lv_obj_set_style_text_font(g_label_content, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(g_label_content, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
     lv_label_set_long_mode(g_label_content, LV_LABEL_LONG_CLIP);
     lv_obj_align(g_label_content, LV_ALIGN_TOP_MID, 0, 0);
 
@@ -264,7 +264,7 @@ void ui_book_read_start(void (*fn)(void), const BookInfo *bookInfo)
     lv_group_add_obj(ui_get_btn_op_group(), btn);
 
     lv_obj_t *title_label = lv_win_add_title(win, "placeholder");
-    lv_obj_set_style_text_font(title_label, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(title_label, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
     lv_label_set_text(title_label, bookInfo->name);
 
     btn = lv_win_add_btn(win, LV_SYMBOL_RIGHT, 40);
@@ -286,7 +286,7 @@ void ui_book_read_start(void (*fn)(void), const BookInfo *bookInfo)
     g_label_content = lv_label_create(cont);
     lv_obj_set_size(g_label_content, 300, 190);
     lv_label_set_text_static(g_label_content, "loading...");
-    lv_obj_set_style_text_font(g_label_content, &font_HarmonyOS_Sans_Light_16, LV_PART_MAIN);
+    lv_obj_set_style_text_font(g_label_content, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
     lv_label_set_long_mode(g_label_content, LV_LABEL_LONG_CLIP);
     lv_obj_align(g_label_content, LV_ALIGN_TOP_MID, 0, 0);
 
