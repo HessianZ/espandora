@@ -40,11 +40,15 @@ static lv_group_t *g_btn_op_group = NULL;
 static button_style_t g_btn_styles;
 static lv_obj_t *g_page_menu = NULL;
 
+static lv_obj_t *g_page_container = NULL;
 static lv_obj_t *g_lab_wifi = NULL;
 static lv_obj_t *g_status_bar = NULL;
 
 static void ui_main_menu(int32_t index_id);
 static void ui_led_set_visible(bool visible);
+static void render_img_btn(int32_t index_id);
+
+static weather_result_t weather = {0};
 
 void ui_acquire(void)
 {
@@ -245,14 +249,55 @@ static int8_t menu_direct_probe(lv_obj_t *focus_obj)
     return direct;
 }
 
+void render_dashboard(lv_obj_t *parent)
+{
+    LV_FONT_DECLARE(font_ZeroHour_48);
+
+    // 时间
+    lv_obj_t *lab_time = lv_label_create(parent);
+    lv_label_set_text_static(lab_time, "--:--");
+    lv_obj_set_style_text_font(lab_time, &font_ZeroHour_48, LV_PART_MAIN);
+    lv_obj_set_style_text_color(lab_time, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(lab_time, 2, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(lab_time, 2, LV_PART_MAIN);
+    lv_obj_center(lab_time);
+
+    // 天气
+    lv_obj_t *lab_weather = lv_label_create(parent);
+    lv_label_set_text_static(lab_weather, "地区 天气 --℃ --%\n--风 风速x级");
+    lv_obj_set_style_text_font(lab_weather, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(lab_weather, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(lab_weather, 2, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(lab_weather, 2, LV_PART_MAIN);
+    lv_obj_set_style_text_opa(lab_weather, LV_OPA_80, LV_PART_MAIN);
+    lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_TOP_MID, 0, -20);
+
+    // 日期
+    lv_obj_t *lab_date = lv_label_create(parent);
+    lv_label_set_text_static(lab_date, "--/-- ---");
+    lv_obj_set_style_text_font(lab_date, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(lab_date, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_letter_space(lab_date, 2, LV_PART_MAIN);
+    lv_obj_set_style_text_line_space(lab_date, 2, LV_PART_MAIN);
+    lv_obj_set_style_text_opa(lab_date, LV_OPA_80, LV_PART_MAIN);
+    lv_obj_align_to(lab_date, lab_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 20);
+}
+
 void menu_new_item_select(lv_obj_t *obj)
 {
     int8_t direct = menu_direct_probe(obj);
     g_item_index = menu_get_num_offset(g_item_index, g_item_size, direct);
     ESP_LOGI(TAG, "slected:%d, direct:%d", g_item_index, direct);
 
-    lv_img_set_src(g_img_item, item[g_item_index].img_src);
-    lv_label_set_text_static(g_lab_item, item[g_item_index].name);
+    lv_obj_clean(g_page_container);
+
+    if (g_item_index == 0) {
+        render_dashboard(g_page_container);
+    } else {
+        render_img_btn(g_item_index);
+        lv_img_set_src(g_img_item, item[g_item_index].img_src);
+        lv_label_set_text_static(g_lab_item, item[g_item_index].name);
+    }
 }
 
 static void led_on(lv_obj_t *obj)
@@ -324,51 +369,8 @@ static void menu_enter_cb(lv_event_t *e)
     }
 }
 
-static void ui_main_menu(int32_t index_id)
+static void render_leds(int32_t index_id)
 {
-    if (!g_page_menu) {
-        g_page_menu = lv_obj_create(lv_scr_act());
-        lv_obj_set_size(g_page_menu, lv_obj_get_width(lv_obj_get_parent(g_page_menu)), lv_obj_get_height(lv_obj_get_parent(g_page_menu)) - lv_obj_get_height(ui_main_get_status_bar()));
-        lv_obj_set_style_border_width(g_page_menu, 0, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(g_page_menu, lv_obj_get_style_bg_color(lv_scr_act(), LV_STATE_DEFAULT), LV_PART_MAIN);
-        lv_obj_clear_flag(g_page_menu, LV_OBJ_FLAG_SCROLLABLE);
-        lv_obj_align_to(g_page_menu, ui_main_get_status_bar(), LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
-    }
-    ui_status_bar_set_visible(true);
-
-    lv_obj_t *obj = lv_obj_create(g_page_menu);
-    lv_obj_set_size(obj, 290, 174);
-    lv_obj_clear_flag(obj, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(obj, 15, LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(obj, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(obj, 20, LV_PART_MAIN);
-    lv_obj_set_style_shadow_opa(obj, LV_OPA_30, LV_PART_MAIN);
-    lv_obj_align(obj, LV_ALIGN_TOP_MID, 0, -10);
-
-    g_img_btn = lv_btn_create(obj);
-    lv_obj_set_size(g_img_btn, 80, 80);
-    lv_obj_add_style(g_img_btn, &ui_button_styles()->style_pr, LV_STATE_PRESSED);
-    lv_obj_add_style(g_img_btn, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUS_KEY);
-    lv_obj_add_style(g_img_btn, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_color(g_img_btn, lv_color_white(), LV_PART_MAIN);
-    lv_obj_set_style_shadow_color(g_img_btn, lv_color_make(0, 0, 0), LV_PART_MAIN);
-    lv_obj_set_style_shadow_width(g_img_btn, 15, LV_PART_MAIN);
-    lv_obj_set_style_shadow_ofs_x(g_img_btn, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_ofs_y(g_img_btn, 0, LV_PART_MAIN);
-    lv_obj_set_style_shadow_opa(g_img_btn, LV_OPA_50, LV_PART_MAIN);
-    lv_obj_set_style_radius(g_img_btn, 40, LV_PART_MAIN);
-    lv_obj_align(g_img_btn, LV_ALIGN_CENTER, 0, -20);
-    lv_obj_add_event_cb(g_img_btn, menu_enter_cb, LV_EVENT_ALL, g_img_btn);
-
-    g_img_item = lv_img_create(g_img_btn);
-    lv_img_set_src(g_img_item, item[index_id].img_src);
-    lv_obj_center(g_img_item);
-
-    g_lab_item = lv_label_create(obj);
-    lv_label_set_text_static(g_lab_item, item[index_id].name);
-    lv_obj_set_style_text_font(g_lab_item, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
-    lv_obj_align(g_lab_item, LV_ALIGN_CENTER, 0, 60);
-
     int g_led_count = sizeof(g_led_item) / sizeof(g_led_item[0]);
     short g_led_size = 5;
     short gap = 10;
@@ -397,6 +399,63 @@ static void ui_main_menu(int32_t index_id)
     g_focus_last_obj = g_led_item[index_id];
 }
 
+static void render_img_btn(int32_t index_id)
+{
+    g_img_btn = lv_btn_create(g_page_container);
+    lv_obj_set_size(g_img_btn, 80, 80);
+    lv_obj_add_style(g_img_btn, &ui_button_styles()->style_pr, LV_STATE_PRESSED);
+    lv_obj_add_style(g_img_btn, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUS_KEY);
+    lv_obj_add_style(g_img_btn, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_color(g_img_btn, lv_color_white(), LV_PART_MAIN);
+    lv_obj_set_style_shadow_color(g_img_btn, lv_color_make(0, 0, 0), LV_PART_MAIN);
+    lv_obj_set_style_shadow_width(g_img_btn, 15, LV_PART_MAIN);
+    lv_obj_set_style_shadow_ofs_x(g_img_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_ofs_y(g_img_btn, 0, LV_PART_MAIN);
+    lv_obj_set_style_shadow_opa(g_img_btn, LV_OPA_50, LV_PART_MAIN);
+    lv_obj_set_style_radius(g_img_btn, 40, LV_PART_MAIN);
+    lv_obj_align(g_img_btn, LV_ALIGN_CENTER, 0, -20);
+    lv_obj_add_event_cb(g_img_btn, menu_enter_cb, LV_EVENT_ALL, g_img_btn);
+
+    g_img_item = lv_img_create(g_img_btn);
+    lv_img_set_src(g_img_item, item[index_id].img_src);
+    lv_obj_center(g_img_item);
+
+    g_lab_item = lv_label_create(g_page_container);
+    lv_label_set_text_static(g_lab_item, item[index_id].name);
+    lv_obj_set_style_text_font(g_lab_item, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
+    lv_obj_align(g_lab_item, LV_ALIGN_CENTER, 0, 60);
+}
+
+static void ui_main_menu(int32_t index_id)
+{
+    if (!g_page_menu) {
+        g_page_menu = lv_obj_create(lv_scr_act());
+        lv_obj_set_size(g_page_menu, lv_obj_get_width(lv_obj_get_parent(g_page_menu)), lv_obj_get_height(lv_obj_get_parent(g_page_menu)) - lv_obj_get_height(ui_main_get_status_bar()));
+        lv_obj_set_style_border_width(g_page_menu, 0, LV_PART_MAIN);
+        lv_obj_set_style_bg_color(g_page_menu, lv_obj_get_style_bg_color(lv_scr_act(), LV_STATE_DEFAULT), LV_PART_MAIN);
+        lv_obj_clear_flag(g_page_menu, LV_OBJ_FLAG_SCROLLABLE);
+        lv_obj_align_to(g_page_menu, ui_main_get_status_bar(), LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
+    }
+    ui_status_bar_set_visible(true);
+
+    g_page_container = lv_obj_create(g_page_menu);
+    lv_obj_set_size(g_page_container, 290, 174);
+    lv_obj_clear_flag(g_page_container, LV_OBJ_FLAG_SCROLLABLE);
+    lv_obj_set_style_radius(g_page_container, 15, LV_STATE_DEFAULT);
+    lv_obj_set_style_border_width(g_page_container, 0, LV_STATE_DEFAULT);
+    lv_obj_set_style_shadow_width(g_page_container, 20, LV_PART_MAIN);
+    lv_obj_set_style_shadow_opa(g_page_container, LV_OPA_30, LV_PART_MAIN);
+    lv_obj_align(g_page_container, LV_ALIGN_TOP_MID, 0, -10);
+
+    if (index_id == 0) {
+        render_dashboard(g_page_container);
+    } else {
+        render_img_btn(index_id);
+    }
+
+    render_leds(index_id);
+}
+
 static void ui_after_boot(void)
 {
     sys_param_t *param = settings_get_parameter();
@@ -410,44 +469,87 @@ static void ui_after_boot(void)
     }
 }
 
+static char WEEKS[7][4] = {
+    "Sun",
+    "Mon",
+    "Tue",
+    "Wed",
+    "Thu",
+    "Fri",
+    "Sat",
+};
+
 static void clock_run_cb(lv_timer_t *timer)
 {
-    lv_obj_t *lab_time = (lv_obj_t *) timer->user_data;
+    if (!app_wifi_is_connected()) {
+        return;
+    }
+
     time_t now;
     struct tm timeinfo;
     time(&now);
     localtime_r(&now, &timeinfo);
-    lv_label_set_text_fmt(lab_time, "%02u-%02u %02u:%02u", timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min);
+
+    // time did not set
+    if (timeinfo.tm_year < (2016 - 1900)) {
+        return;
+    }
+
+    ui_acquire();
+    // status bar
+    lv_label_set_text_fmt(timer->user_data, "%02u-%02u %02u:%02u", timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min);
+
+    if (g_item_index == 0) {
+        lv_obj_t *lab_date = lv_obj_get_child(g_page_container, 2);
+        lv_obj_t *lab_time = lv_obj_get_child(g_page_container, 0);
+
+        char *week = WEEKS[timeinfo.tm_wday];
+
+        lv_label_set_text_fmt(lab_date, "%02u-%02u %s", timeinfo.tm_mon + 1, timeinfo.tm_mday, week);
+        lv_label_set_text_fmt(lab_time, "%02u:%02u", timeinfo.tm_hour, timeinfo.tm_min, week);
+
+        lv_obj_update_layout(g_page_container);
+    }
+
+
+    ui_release();
 }
 
 
 static void weather_run_cb(lv_timer_t *timer)
 {
-    lv_obj_t *lab_weather = (lv_obj_t *) timer->user_data;
-    weather_result_t result;
-    esp_err_t ret = http_get_weather(&result);
+    if (!app_wifi_is_connected()) {
+        return;
+    }
+
+    if (timer->period == 1000) {
+        lv_timer_set_period(timer, 120 * 1000);
+    }
+
+    esp_err_t ret = http_get_weather(&weather);
     if (ret != ESP_OK) {
         ESP_LOGE(TAG, "http_get_weather failed");
         return;
     }
+    ui_acquire();
 
-    lv_label_set_text_fmt(lab_weather, "%s %s %s℃", result.city, result.weather, result.temp);
-}
+    // status bar
+    lv_label_set_text_fmt(timer->user_data, "%s %s %s℃", weather.city, weather.weather, weather.temp);
 
-void weather_run_task(void *timer2)
-{
-    while (!app_wifi_is_connected()) {
-        vTaskDelay(pdMS_TO_TICKS(1000));
+    if (g_item_index == 0) {
+        lv_obj_t *lab_weather = lv_obj_get_child(g_page_container, 1);
+        lv_label_set_text_fmt(lab_weather, "%s %s %s℃ %s%%\n%s 风速%s级", weather.city, weather.weather, weather.temp, weather.humi, weather.wind, weather.windSpeed);
+        lv_obj_update_layout(g_page_container);
     }
 
-    weather_run_cb((lv_timer_t *)timer2);
-    vTaskDelete(NULL);
+    ui_release();
 }
+
 
 esp_err_t ui_main_start(void)
 {
     ui_acquire();
-    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(237, 238, 239), LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(0xcc, 0xcc, 0xcc), LV_STATE_DEFAULT);
     ui_button_style_init();
 
     lv_indev_t *indev = lv_indev_get_next(NULL);
@@ -486,8 +588,8 @@ esp_err_t ui_main_start(void)
     lv_label_set_text_static(lab_weather, "梅州 多云 25℃");
 //    lv_obj_align(lab_time, LV_ALIGN_LEFT_MID, 10, 0);
     lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
-    lv_timer_t *timer2 = lv_timer_create(weather_run_cb, 120*1000, (void *) lab_weather);
-    xTaskCreate(weather_run_task, "weather_run_task", 1024*4, timer2, 5, NULL);
+    lv_timer_t *timer2 = lv_timer_create(weather_run_cb, 1000, (void *) lab_weather);
+    weather_run_cb(timer2);
 
     g_lab_wifi = lv_label_create(g_status_bar);
     lv_obj_align_to(g_lab_wifi, lab_weather, LV_ALIGN_OUT_RIGHT_MID, 10, 0);

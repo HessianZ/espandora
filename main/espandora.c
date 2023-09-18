@@ -47,6 +47,7 @@ void wifi_task(void *args)
 void app_main(void)
 {
     esp_log_level_set("ui_main", ESP_LOG_VERBOSE);
+    esp_log_level_set("http", ESP_LOG_VERBOSE);
 
     ESP_LOGI(TAG, "Compile time: %s %s", __DATE__, __TIME__);
     /* Initialize NVS. */

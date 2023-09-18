@@ -13,6 +13,6 @@
 /** Patch version number (x.x.X) */
 #define ESPANDORA_VERSION_PATCH 0
 
-#define ESPANDORA_MAIN_FONT font_OPPOSans_L_16
+#define ESPANDORA_MAIN_FONT font_OPPOSans_R_16
 
 #endif //ESPANDORA_CONSTANTS_H

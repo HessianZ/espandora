@@ -114,7 +114,7 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
 
 esp_err_t http_get_weather(weather_result_t *result)
 {
-    ESP_LOGI(TAG, "Start http_get_weather ...");
+    ESP_LOGD(TAG, "Start http_get_weather ...");
 
     char *response = calloc(8192, sizeof(char));
     esp_http_client_config_t config = {
