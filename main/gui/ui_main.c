@@ -30,6 +30,17 @@
 #define ENABLE_BOOT_ANIMATION 0
 
 
+#define COLOR_MAIN_BG_HEX 0x272838
+#define COLOR_PAGE_BG_HEX 0xBFCAD0
+#define COLOR_PRIMARY_HEX 0X970C10
+#define COLOR_TEXT_HEX 0X474440
+
+#define COLOR_MAIN_BG lv_color_hex(COLOR_MAIN_BG_HEX)
+#define COLOR_PAGE_BG lv_color_hex(COLOR_PAGE_BG_HEX)
+#define COLOR_PRIMARY lv_color_hex(COLOR_PRIMARY_HEX)
+#define COLOR_TEXT lv_color_hex(COLOR_TEXT_HEX)
+
+
 static const char *TAG = "ui_main";
 
 LV_FONT_DECLARE(font_icon_16);
@@ -256,31 +267,37 @@ void render_dashboard(lv_obj_t *parent)
     // 时间
     lv_obj_t *lab_time = lv_label_create(parent);
     lv_label_set_text_static(lab_time, "--:--");
+    lv_label_set_recolor(lab_time, true);
     lv_obj_set_style_text_font(lab_time, &font_ZeroHour_48, LV_PART_MAIN);
-    lv_obj_set_style_text_color(lab_time, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(lab_time, COLOR_PRIMARY, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(lab_time, 2, LV_PART_MAIN);
     lv_obj_set_style_text_line_space(lab_time, 2, LV_PART_MAIN);
+    lv_obj_set_style_text_align(lab_time, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_center(lab_time);
 
     // 天气
     lv_obj_t *lab_weather = lv_label_create(parent);
     lv_label_set_text_static(lab_weather, "地区 天气 --℃ --%\n--风 风速x级");
+    lv_label_set_recolor(lab_weather, true);
     lv_obj_set_style_text_font(lab_weather, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
-    lv_obj_set_style_text_color(lab_weather, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(lab_weather, COLOR_TEXT, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(lab_weather, 2, LV_PART_MAIN);
     lv_obj_set_style_text_line_space(lab_weather, 2, LV_PART_MAIN);
     lv_obj_set_style_text_opa(lab_weather, LV_OPA_80, LV_PART_MAIN);
-    lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_TOP_MID, 0, -20);
+    lv_obj_set_style_text_align(lab_weather, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_TOP_MID, 0, -10);
 
     // 日期
     lv_obj_t *lab_date = lv_label_create(parent);
     lv_label_set_text_static(lab_date, "--/-- ---");
     lv_obj_set_style_text_font(lab_date, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
-    lv_obj_set_style_text_color(lab_date, lv_color_black(), LV_PART_MAIN);
+    lv_obj_set_style_text_color(lab_date, COLOR_TEXT, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(lab_date, 2, LV_PART_MAIN);
     lv_obj_set_style_text_line_space(lab_date, 2, LV_PART_MAIN);
     lv_obj_set_style_text_opa(lab_date, LV_OPA_80, LV_PART_MAIN);
-    lv_obj_align_to(lab_date, lab_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 20);
+    lv_obj_set_style_text_align(lab_date, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align_to(lab_date, lab_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
+    lv_label_set_recolor(lab_date, true);
 }
 
 void menu_new_item_select(lv_obj_t *obj)
@@ -439,6 +456,7 @@ static void ui_main_menu(int32_t index_id)
     ui_status_bar_set_visible(true);
 
     g_page_container = lv_obj_create(g_page_menu);
+    lv_obj_set_style_bg_color(g_page_container, COLOR_PAGE_BG, LV_STATE_DEFAULT);
     lv_obj_set_size(g_page_container, 290, 174);
     lv_obj_clear_flag(g_page_container, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_radius(g_page_container, 15, LV_STATE_DEFAULT);
@@ -505,8 +523,13 @@ static void clock_run_cb(lv_timer_t *timer)
 
         char *week = WEEKS[timeinfo.tm_wday];
 
-        lv_label_set_text_fmt(lab_date, "%02u-%02u %s", timeinfo.tm_mon + 1, timeinfo.tm_mday, week);
-        lv_label_set_text_fmt(lab_time, "%02u:%02u", timeinfo.tm_hour, timeinfo.tm_min, week);
+        lv_label_set_text_fmt(lab_date, "%02u/%02u #970C10 %s#", timeinfo.tm_mon + 1, timeinfo.tm_mday, week);
+
+        if (timeinfo.tm_sec % 2) {
+            lv_label_set_text_fmt(lab_time, "%02u#D6777A :#%02u", timeinfo.tm_hour, timeinfo.tm_min);
+        } else {
+            lv_label_set_text_fmt(lab_time, "%02u#970C10 :#%02u", timeinfo.tm_hour, timeinfo.tm_min);
+        }
 
         lv_obj_update_layout(g_page_container);
     }
@@ -533,12 +556,16 @@ static void weather_run_cb(lv_timer_t *timer)
     }
     ui_acquire();
 
-    // status bar
-    lv_label_set_text_fmt(timer->user_data, "%s %s %s℃", weather.city, weather.weather, weather.temp);
-
     if (g_item_index == 0) {
         lv_obj_t *lab_weather = lv_obj_get_child(g_page_container, 1);
-        lv_label_set_text_fmt(lab_weather, "%s %s %s℃ %s%%\n%s 风速%s级", weather.city, weather.weather, weather.temp, weather.humi, weather.wind, weather.windSpeed);
+        int temp = atoi(weather.temp);
+        char *temp_color = "000000";
+        if (temp < 20) {
+            temp_color = "3E96E7";
+        } else if (temp > 30) {
+            temp_color = "970C10";
+        }
+        lv_label_set_text_fmt(lab_weather, "%s %s #%s %s℃# %s%%\n%s 风速%s级", weather.city, weather.weather, temp_color, weather.temp, weather.humi, weather.wind, weather.windSpeed);
         lv_obj_update_layout(g_page_container);
     }
 
@@ -549,7 +576,7 @@ static void weather_run_cb(lv_timer_t *timer)
 esp_err_t ui_main_start(void)
 {
     ui_acquire();
-    lv_obj_set_style_bg_color(lv_scr_act(), lv_color_make(0xcc, 0xcc, 0xcc), LV_STATE_DEFAULT);
+    lv_obj_set_style_bg_color(lv_scr_act(), COLOR_MAIN_BG, LV_STATE_DEFAULT);
     ui_button_style_init();
 
     lv_indev_t *indev = lv_indev_get_next(NULL);
@@ -567,6 +594,8 @@ esp_err_t ui_main_start(void)
         ESP_LOGI(TAG, "Input device type have pointer");
     }
 
+    lv_obj_clear_flag(lv_scr_act(), LV_OBJ_FLAG_SCROLLABLE);
+
     // Create status bar
     g_status_bar = lv_obj_create(lv_scr_act());
     lv_obj_set_size(g_status_bar, lv_obj_get_width(lv_obj_get_parent(g_status_bar)), 36);
@@ -579,20 +608,17 @@ esp_err_t ui_main_start(void)
 
     lv_obj_t *lab_time = lv_label_create(g_status_bar);
     lv_label_set_text_static(lab_time, "12-12 23:59");
+    lv_obj_set_style_text_color(lab_time, COLOR_PAGE_BG, LV_PART_MAIN);
     lv_obj_align(lab_time, LV_ALIGN_LEFT_MID, 0, 0);
     lv_timer_t *timer = lv_timer_create(clock_run_cb, 1000, (void *) lab_time);
     clock_run_cb(timer);
 
-    lv_obj_t *lab_weather = lv_label_create(g_status_bar);
-    lv_obj_set_style_text_font(lab_weather, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
-    lv_label_set_text_static(lab_weather, "梅州 多云 25℃");
-//    lv_obj_align(lab_time, LV_ALIGN_LEFT_MID, 10, 0);
-    lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
-    lv_timer_t *timer2 = lv_timer_create(weather_run_cb, 1000, (void *) lab_weather);
+    lv_timer_t *timer2 = lv_timer_create(weather_run_cb, 1000, NULL);
     weather_run_cb(timer2);
 
     g_lab_wifi = lv_label_create(g_status_bar);
-    lv_obj_align_to(g_lab_wifi, lab_weather, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+    lv_obj_set_style_text_color(g_lab_wifi, COLOR_PAGE_BG, LV_PART_MAIN);
+    lv_obj_align_to(g_lab_wifi, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 
     ui_status_bar_set_visible(0);
 
