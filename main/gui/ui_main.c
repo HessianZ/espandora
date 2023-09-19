@@ -257,8 +257,6 @@ void render_dashboard(lv_obj_t *parent)
     lv_label_set_recolor(lab_time, true);
     lv_obj_set_style_text_font(lab_time, &font_ZeroHour_48, LV_PART_MAIN);
     lv_obj_set_style_text_color(lab_time, COLOR_PRIMARY, LV_PART_MAIN);
-    lv_obj_set_style_text_letter_space(lab_time, 2, LV_PART_MAIN);
-    lv_obj_set_style_text_line_space(lab_time, 2, LV_PART_MAIN);
     lv_obj_set_style_text_align(lab_time, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_center(lab_time);
 
@@ -268,8 +266,6 @@ void render_dashboard(lv_obj_t *parent)
     lv_label_set_recolor(lab_weather, true);
     lv_obj_set_style_text_font(lab_weather, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
     lv_obj_set_style_text_color(lab_weather, COLOR_TEXT, LV_PART_MAIN);
-    lv_obj_set_style_text_letter_space(lab_weather, 2, LV_PART_MAIN);
-    lv_obj_set_style_text_line_space(lab_weather, 2, LV_PART_MAIN);
     lv_obj_set_style_text_opa(lab_weather, LV_OPA_80, LV_PART_MAIN);
     lv_obj_set_style_text_align(lab_weather, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_TOP_MID, 0, -10);
@@ -279,8 +275,6 @@ void render_dashboard(lv_obj_t *parent)
     lv_label_set_text_static(lab_date, "--/-- ---");
     lv_obj_set_style_text_font(lab_date, &font_InSovietRussiaRegular_PeaE_24, LV_PART_MAIN);
     lv_obj_set_style_text_color(lab_date, COLOR_TEXT, LV_PART_MAIN);
-    lv_obj_set_style_text_letter_space(lab_date, 2, LV_PART_MAIN);
-    lv_obj_set_style_text_line_space(lab_date, 2, LV_PART_MAIN);
     lv_obj_set_style_text_opa(lab_date, LV_OPA_80, LV_PART_MAIN);
     lv_obj_set_style_text_align(lab_date, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
     lv_obj_align_to(lab_date, lab_time, LV_ALIGN_OUT_BOTTOM_MID, 0, 15);
