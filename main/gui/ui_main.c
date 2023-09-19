@@ -5,26 +5,19 @@
  */
 
 #include <sys/time.h>
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/semphr.h"
 #include "esp_log.h"
-#include "esp_check.h"
-#include "bsp_board.h"
 #include "bsp/esp-bsp.h"
 #include "lvgl.h"
 #include "lv_symbol_extra_def.h"
 #include "app_wifi.h"
 #include "settings.h"
 #include "ui_main.h"
-#include "ui_sr.h"
 #include "ui_hint.h"
 //#include "ui_about_us.h"
 #include "ui_net_config.h"
 #include "ui_boot_animate.h"
 #include "http.h"
 #include "ui_about_us.h"
-#include "ui_book.h"
 
 
 #define ENABLE_BOOT_ANIMATION 0
@@ -33,7 +26,7 @@
 #define COLOR_MAIN_BG_HEX 0x272838
 #define COLOR_PAGE_BG_HEX 0xBFCAD0
 #define COLOR_PRIMARY_HEX 0X970C10
-#define COLOR_TEXT_HEX 0X474440
+#define COLOR_TEXT_HEX 0x272838
 
 #define COLOR_MAIN_BG lv_color_hex(COLOR_MAIN_BG_HEX)
 #define COLOR_PAGE_BG lv_color_hex(COLOR_PAGE_BG_HEX)
@@ -165,12 +158,6 @@ static void about_us_end_cb(void)
     ui_main_menu(g_item_index);
 }
 
-static void book_end_cb(void)
-{
-    ESP_LOGI(TAG, "book end");
-    ui_main_menu(g_item_index);
-}
-
 static void net_end_cb(void)
 {
     ESP_LOGI(TAG, "net end");
@@ -189,17 +176,16 @@ typedef struct {
 
 LV_IMG_DECLARE(icon_about_us)
 LV_IMG_DECLARE(icon_network)
-LV_IMG_DECLARE(icon_book)
 //LV_IMG_DECLARE(icon_bilibili)
 
 static item_desc_t item[] = {
-    { .name = "书籍",      .img_src = (void *) &icon_book},
+    { .name = "时钟",      .img_src = (void *) &icon_network},
     { .name = "网络设置",   .img_src = (void *) &icon_network},
     { .name = "关于",      .img_src = (void *) &icon_about_us},
 };
 
 static enum page_index_t {
-    PAGE_BOOK_INDEX,
+    PAGE_DASHBOARD_INDEX,
     PAGE_NET_CONFIG_INDEX,
     PAGE_ABOUT_US_INDEX,
 };
@@ -262,6 +248,7 @@ static int8_t menu_direct_probe(lv_obj_t *focus_obj)
 
 void render_dashboard(lv_obj_t *parent)
 {
+    LV_FONT_DECLARE(font_InSovietRussiaRegular_PeaE_24);
     LV_FONT_DECLARE(font_ZeroHour_48);
 
     // 时间
@@ -290,7 +277,7 @@ void render_dashboard(lv_obj_t *parent)
     // 日期
     lv_obj_t *lab_date = lv_label_create(parent);
     lv_label_set_text_static(lab_date, "--/-- ---");
-    lv_obj_set_style_text_font(lab_date, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_font(lab_date, &font_InSovietRussiaRegular_PeaE_24, LV_PART_MAIN);
     lv_obj_set_style_text_color(lab_date, COLOR_TEXT, LV_PART_MAIN);
     lv_obj_set_style_text_letter_space(lab_date, 2, LV_PART_MAIN);
     lv_obj_set_style_text_line_space(lab_date, 2, LV_PART_MAIN);
@@ -368,9 +355,8 @@ static void menu_enter_cb(lv_event_t *e)
         g_focus_last_obj = NULL;
 
         switch (g_item_index) {
-        case PAGE_BOOK_INDEX:
-            ui_status_bar_set_visible(true);
-            ui_book_start(book_end_cb);
+        case PAGE_DASHBOARD_INDEX:
+//            ui_status_bar_set_visible(true);
             break;
         case PAGE_NET_CONFIG_INDEX:
             ui_status_bar_set_visible(true);
