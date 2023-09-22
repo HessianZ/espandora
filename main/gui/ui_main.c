@@ -18,6 +18,8 @@
 #include "ui_boot_animate.h"
 #include "http.h"
 #include "ui_about_us.h"
+#include "ui_sr.h"
+#include "ui_ring.h"
 
 
 #define ENABLE_BOOT_ANIMATION 0
@@ -456,15 +458,7 @@ static void ui_main_menu(int32_t index_id)
 
 static void ui_after_boot(void)
 {
-    sys_param_t *param = settings_get_parameter();
-    if (param->need_hint) {
-        /* Show default hint page */
-        ui_help();
-        param->need_hint = 0;
-        settings_write_parameter_to_nvs();
-    } else {
-        ui_main_menu(g_item_index);
-    }
+    ui_main_menu(g_item_index);
 }
 
 static char WEEKS[7][4] = {
@@ -602,9 +596,11 @@ esp_err_t ui_main_start(void)
 
     ui_status_bar_set_visible(0);
 
-#if ENABLE_BOOT_ANIMATION
     /* For speech animation */
     ui_sr_anim_init();
+    ui_ring_init();
+
+#if ENABLE_BOOT_ANIMATION
     boot_animate_start(ui_after_boot);
 #else
     ui_after_boot();

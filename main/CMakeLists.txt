@@ -8,12 +8,16 @@ idf_component_register(
         "http"
         "gui/font"
         "gui/image"
+        "system"
 
     INCLUDE_DIRS
         "."
         "app"
         "gui"
         "http"
+        "system"
+
+    EMBED_TXTFILES server_root_cert.pem
 )
 
 add_definitions(-w)

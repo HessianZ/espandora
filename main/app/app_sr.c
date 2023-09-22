@@ -432,7 +432,7 @@ esp_err_t app_sr_start(bool record_en)
 
     sys_param_t *param = settings_get_parameter();
     g_sr_data->lang = SR_LANG_MAX;
-    ret = app_sr_set_language(param->sr_lang);
+    ret = app_sr_set_language(SR_LANG_CN);
     ESP_GOTO_ON_FALSE(ESP_OK == ret, ESP_FAIL, err, TAG,  "Failed to set language");
 
     ret_val = xTaskCreatePinnedToCore(&audio_feed_task, "Feed Task", 4 * 1024, (void*)afe_data, 5, &g_sr_data->feed_task, 0);

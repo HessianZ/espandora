@@ -13,6 +13,9 @@
 #include "app_wifi.h"
 #include "file_iterator.h"
 #include "app_sr_handler.h"
+#include "app_sr.h"
+#include "mqtt.h"
+#include "http_server.h"
 
 static const char *TAG = "main";
 
@@ -78,4 +81,7 @@ void app_main(void)
 
     BaseType_t ret_val = xTaskCreatePinnedToCore(wifi_task, "Wifi Task", 6 * 1024, NULL, 1, NULL, 0);
     ESP_ERROR_CHECK_WITHOUT_ABORT((pdPASS == ret_val) ? ESP_OK : ESP_FAIL);
+
+    xTaskCreate(mqtt_task, "mqtt_task", 4096, NULL, 3, NULL);
+    xTaskCreate(http_server_init, "http_server_task", 4096, NULL, 3, NULL);
 }
