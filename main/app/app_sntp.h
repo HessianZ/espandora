@@ -11,7 +11,7 @@
 extern "C" {
 #endif
 
-void app_sntp_init(void);
+void app_sntp_init(void*);
 
 #ifdef __cplusplus
 }

@@ -43,7 +43,7 @@ static void time_sync_notification_cb(struct timeval *tv)
     settimeofday(tv, NULL);
 }
 
-void app_sntp_init(void)
+void app_sntp_init(void*)
 {
     ++boot_count;
     ESP_LOGI(TAG, "Boot count: %d", boot_count);

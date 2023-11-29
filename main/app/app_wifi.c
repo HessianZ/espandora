@@ -205,6 +205,11 @@ void app_wifi_init(void)
     ESP_ERROR_CHECK(esp_wifi_init(&cfg));
 }
 
+void sntp_sync(void*)
+{
+    app_sntp_init(NULL);
+}
+
 esp_err_t app_wifi_start(void)
 {
     ui_net_config_update_cb(UI_NET_EVT_START, NULL);
@@ -257,7 +262,18 @@ esp_err_t app_wifi_start(void)
 
     xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_EVENT, false, true, portMAX_DELAY);
     ui_net_config_update_cb(UI_NET_EVT_WIFI_CONNECTED, NULL);
-    app_sntp_init();
+
+    // fetch ntp time immediately
+    app_sntp_init(NULL);
+
+    // fetch ntp time periodically
+    esp_timer_create_args_t sntp_timer_args = {
+        .callback = app_sntp_init,
+        .name = "sntp_sync"
+    };
+    esp_timer_handle_t sntp_timer;
+    ESP_ERROR_CHECK(esp_timer_create(&sntp_timer_args, &sntp_timer));
+    ESP_ERROR_CHECK(esp_timer_start_periodic(sntp_timer, 5 * 60 * 1000000));
 
     return ESP_OK;
 }
