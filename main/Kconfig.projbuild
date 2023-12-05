@@ -1,0 +1,9 @@
+menu "Espandora Configuration"
+
+    config ESPANDORA_NTP_SERVER
+        string "NTP Server"
+        default "0.cn.pool.ntp.org"
+        help
+            NTP server for the app to sync time.
+
+endmenu
