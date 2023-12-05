@@ -21,6 +21,8 @@
 #include <wifi_provisioning/manager.h>
 #include <wifi_provisioning/scheme_ble.h>
 #include <wifi_provisioning/scheme_softap.h>
+#include <esp_netif_sntp.h>
+#include <time.h>
 
 #include "app_wifi.h"
 #include "app_sntp.h"
@@ -207,7 +209,22 @@ void app_wifi_init(void)
 
 void sntp_sync(void*)
 {
-    app_sntp_init(NULL);
+    char strftime_buf[64];
+    time_t now;
+    struct tm timeinfo;
+    time(&now);
+    localtime_r(&now, &timeinfo);
+    strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+    ESP_LOGI(TAG, "Time before NTP sync: %s", strftime_buf);
+
+    if (esp_netif_sntp_sync_wait(pdMS_TO_TICKS(10000)) != ESP_OK) {
+        ESP_LOGW(TAG, "Failed to update system time from NTP within 10s timeout");
+    } else {
+        time(&now);
+        localtime_r(&now, &timeinfo);
+        strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);
+        ESP_LOGI(TAG, "New time from NTP is: %s", strftime_buf);
+    }
 }
 
 esp_err_t app_wifi_start(void)
@@ -263,12 +280,16 @@ esp_err_t app_wifi_start(void)
     xEventGroupWaitBits(wifi_event_group, WIFI_CONNECTED_EVENT, false, true, portMAX_DELAY);
     ui_net_config_update_cb(UI_NET_EVT_WIFI_CONNECTED, NULL);
 
-    // fetch ntp time immediately
-    app_sntp_init(NULL);
+    esp_sntp_config_t sntp_config = ESP_NETIF_SNTP_DEFAULT_CONFIG(CONFIG_ESPANDORA_NTP_SERVER);
+    esp_netif_sntp_init(&sntp_config);
+
+    setenv("TZ", "CST-8", 1);
+    tzset();
+    sntp_sync(NULL);
 
     // fetch ntp time periodically
     esp_timer_create_args_t sntp_timer_args = {
-        .callback = app_sntp_init,
+        .callback = sntp_sync,
         .name = "sntp_sync"
     };
     esp_timer_handle_t sntp_timer;
