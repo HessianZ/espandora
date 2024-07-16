@@ -49,6 +49,7 @@ static lv_obj_t *g_page_menu = NULL;
 static lv_obj_t *g_page_container = NULL;
 static lv_obj_t *g_lab_wifi = NULL;
 static lv_obj_t *g_status_bar = NULL;
+static lv_style_t g_style;
 
 static void ui_main_menu(int32_t index_id);
 static void ui_led_set_visible(bool visible);
@@ -75,14 +76,14 @@ static void ui_button_style_init(void)
 
     lv_style_set_radius(&g_btn_styles.style, 5);
 
-    // lv_style_set_bg_opa(&g_btn_styles.style, LV_OPA_100);
-    lv_style_set_bg_color(&g_btn_styles.style, lv_color_make(255, 255, 255));
+     lv_style_set_bg_opa(&g_btn_styles.style, LV_OPA_TRANSP);
+//    lv_style_set_bg_color(&g_btn_styles.style, lv_color_make(255, 255, 255));
     // lv_style_set_bg_grad_color(&g_btn_styles.style, lv_color_make(255, 255, 255));
     // lv_style_set_bg_grad_dir(&g_btn_styles.style, LV_GRAD_DIR_VER);
 
-    lv_style_set_border_opa(&g_btn_styles.style, LV_OPA_30);
-    lv_style_set_border_width(&g_btn_styles.style, 2);
-    lv_style_set_border_color(&g_btn_styles.style, lv_palette_main(LV_PALETTE_GREY));
+//    lv_style_set_border_opa(&g_btn_styles.style, LV_OPA_30);
+//    lv_style_set_border_width(&g_btn_styles.style, 2);
+//    lv_style_set_border_color(&g_btn_styles.style, lv_palette_main(LV_PALETTE_GREY));
 
     lv_style_set_shadow_width(&g_btn_styles.style, 7);
     lv_style_set_shadow_color(&g_btn_styles.style, lv_color_make(0, 0, 0));
@@ -103,13 +104,14 @@ static void ui_button_style_init(void)
 
     lv_style_init(&g_btn_styles.style_pr);
 
-    lv_style_set_border_opa(&g_btn_styles.style_pr, LV_OPA_40);
-    lv_style_set_border_width(&g_btn_styles.style_pr, 2);
-    lv_style_set_border_color(&g_btn_styles.style_pr, lv_palette_main(LV_PALETTE_GREY));
+//    lv_style_set_border_opa(&g_btn_styles.style_pr, LV_OPA_TRANSP);
+//    lv_style_set_border_width(&g_btn_styles.style_pr, 2);
+//    lv_style_set_border_color(&g_btn_styles.style_pr, lv_palette_main(LV_PALETTE_GREY));
 
 
     lv_style_init(&g_btn_styles.style_focus);
-    lv_style_set_outline_color(&g_btn_styles.style_focus, lv_color_make(255, 0, 0));
+//    lv_style_set_border_opa(&g_btn_styles.style_pr, LV_OPA_TRANSP);
+//    lv_style_set_outline_color(&g_btn_styles.style_focus, lv_color_make(255, 0, 0));
 
     lv_style_init(&g_btn_styles.style_focus_no_outline);
     lv_style_set_outline_width(&g_btn_styles.style_focus_no_outline, 0);
@@ -292,7 +294,7 @@ void menu_new_item_select(lv_obj_t *obj)
     lv_obj_clean(g_page_container);
 
     if (g_item_index == 0) {
-        render_dashboard(g_page_container);
+//        render_dashboard(g_page_container);
     } else {
         render_img_btn(g_item_index);
         lv_img_set_src(g_img_item, item[g_item_index].img_src);
@@ -401,17 +403,18 @@ static void render_leds(int32_t index_id)
 static void render_img_btn(int32_t index_id)
 {
     g_img_btn = lv_btn_create(g_page_container);
+    lv_obj_add_style(g_img_btn, &g_style, LV_PART_MAIN);
     lv_obj_set_size(g_img_btn, 80, 80);
     lv_obj_add_style(g_img_btn, &ui_button_styles()->style_pr, LV_STATE_PRESSED);
     lv_obj_add_style(g_img_btn, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUS_KEY);
     lv_obj_add_style(g_img_btn, &ui_button_styles()->style_focus_no_outline, LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_color(g_img_btn, lv_color_white(), LV_PART_MAIN);
+//    lv_obj_set_style_bg_color(g_img_btn, lv_color_white(), LV_PART_MAIN);
     lv_obj_set_style_shadow_color(g_img_btn, lv_color_make(0, 0, 0), LV_PART_MAIN);
     lv_obj_set_style_shadow_width(g_img_btn, 15, LV_PART_MAIN);
     lv_obj_set_style_shadow_ofs_x(g_img_btn, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_ofs_y(g_img_btn, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_opa(g_img_btn, LV_OPA_50, LV_PART_MAIN);
-    lv_obj_set_style_radius(g_img_btn, 40, LV_PART_MAIN);
+//    lv_obj_set_style_radius(g_img_btn, 40, LV_PART_MAIN);
     lv_obj_align(g_img_btn, LV_ALIGN_CENTER, 0, -20);
     lv_obj_add_event_cb(g_img_btn, menu_enter_cb, LV_EVENT_ALL, g_img_btn);
 
@@ -429,26 +432,29 @@ static void ui_main_menu(int32_t index_id)
 {
     if (!g_page_menu) {
         g_page_menu = lv_obj_create(lv_scr_act());
+        lv_obj_add_style(g_page_menu, &g_style, LV_PART_MAIN);
         lv_obj_set_size(g_page_menu, lv_obj_get_width(lv_obj_get_parent(g_page_menu)), lv_obj_get_height(lv_obj_get_parent(g_page_menu)) - lv_obj_get_height(ui_main_get_status_bar()));
-        lv_obj_set_style_border_width(g_page_menu, 0, LV_PART_MAIN);
-        lv_obj_set_style_bg_color(g_page_menu, lv_obj_get_style_bg_color(lv_scr_act(), LV_STATE_DEFAULT), LV_PART_MAIN);
+//        lv_obj_set_style_border_width(g_page_menu, 0, LV_PART_MAIN);
+//        lv_obj_set_style_bg_color(g_page_menu, lv_obj_get_style_bg_color(lv_scr_act(), LV_STATE_DEFAULT), LV_PART_MAIN);
         lv_obj_clear_flag(g_page_menu, LV_OBJ_FLAG_SCROLLABLE);
         lv_obj_align_to(g_page_menu, ui_main_get_status_bar(), LV_ALIGN_OUT_BOTTOM_LEFT, 0, 0);
     }
     ui_status_bar_set_visible(true);
 
     g_page_container = lv_obj_create(g_page_menu);
-    lv_obj_set_style_bg_color(g_page_container, COLOR_PAGE_BG, LV_STATE_DEFAULT);
+    lv_obj_add_style(g_page_container, &g_style, LV_PART_MAIN);
+
+//    lv_obj_set_style_bg_color(g_page_container, COLOR_PAGE_BG, LV_STATE_DEFAULT);
     lv_obj_set_size(g_page_container, 290, 174);
     lv_obj_clear_flag(g_page_container, LV_OBJ_FLAG_SCROLLABLE);
-    lv_obj_set_style_radius(g_page_container, 15, LV_STATE_DEFAULT);
-    lv_obj_set_style_border_width(g_page_container, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_shadow_width(g_page_container, 20, LV_PART_MAIN);
-    lv_obj_set_style_shadow_opa(g_page_container, LV_OPA_30, LV_PART_MAIN);
+//    lv_obj_set_style_radius(g_page_container, 15, LV_STATE_DEFAULT);
+//    lv_obj_set_style_border_width(g_page_container, 0, LV_STATE_DEFAULT);
+//    lv_obj_set_style_shadow_width(g_page_container, 20, LV_PART_MAIN);
+//    lv_obj_set_style_shadow_opa(g_page_container, LV_OPA_30, LV_PART_MAIN);
     lv_obj_align(g_page_container, LV_ALIGN_TOP_MID, 0, -10);
 
     if (index_id == 0) {
-        render_dashboard(g_page_container);
+//        render_dashboard(g_page_container);
     } else {
         render_img_btn(index_id);
     }
@@ -462,13 +468,13 @@ static void ui_after_boot(void)
 }
 
 static char WEEKS[7][4] = {
-    "Sun",
-    "Mon",
-    "Tue",
-    "Wed",
-    "Thu",
-    "Fri",
-    "Sat",
+    "日",
+    "一",
+    "二",
+    "三",
+    "四",
+    "五",
+    "六",
 };
 
 static void clock_run_cb(lv_timer_t *timer)
@@ -489,25 +495,8 @@ static void clock_run_cb(lv_timer_t *timer)
 
     ui_acquire();
     // status bar
-    lv_label_set_text_fmt(timer->user_data, "%02u-%02u %02u:%02u", timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min);
-
-    if (g_item_index == 0) {
-        lv_obj_t *lab_date = lv_obj_get_child(g_page_container, 2);
-        lv_obj_t *lab_time = lv_obj_get_child(g_page_container, 0);
-
-        char *week = WEEKS[timeinfo.tm_wday];
-
-        lv_label_set_text_fmt(lab_date, "%02u/%02u #970C10 %s#", timeinfo.tm_mon + 1, timeinfo.tm_mday, week);
-
-        if (timeinfo.tm_sec % 2) {
-            lv_label_set_text_fmt(lab_time, "%02u#D6777A :#%02u", timeinfo.tm_hour, timeinfo.tm_min);
-        } else {
-            lv_label_set_text_fmt(lab_time, "%02u#970C10 :#%02u", timeinfo.tm_hour, timeinfo.tm_min);
-        }
-
-        lv_obj_update_layout(g_page_container);
-    }
-
+    char *week = WEEKS[timeinfo.tm_wday];
+    lv_label_set_text_fmt(timer->user_data, "%02u-%02u %02u:%02u #970C10 星期%s#", timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, week);
 
     ui_release();
 }
@@ -528,18 +517,11 @@ static void weather_run_cb(lv_timer_t *timer)
         ESP_LOGE(TAG, "http_get_weather failed");
         return;
     }
+
     ui_acquire();
 
     if (g_item_index == 0) {
-        lv_obj_t *lab_weather = lv_obj_get_child(g_page_container, 1);
-        int temp = atoi(weather.temp);
-        char *temp_color = "000000";
-        if (temp < 20) {
-            temp_color = "3E96E7";
-        } else if (temp > 30) {
-            temp_color = "970C10";
-        }
-        lv_label_set_text_fmt(lab_weather, "%s %s #%s %s℃# %s%%\n%s 风速%s级", weather.city, weather.weather, temp_color, weather.temp, weather.humi, weather.wind, weather.windSpeed);
+        lv_label_set_text_fmt(timer->user_data, "%s %s %s℃ %s%%", weather.city, weather.weather, weather.temp, weather.humi);
         lv_obj_update_layout(g_page_container);
     }
 
@@ -550,7 +532,7 @@ static void weather_run_cb(lv_timer_t *timer)
 esp_err_t ui_main_start(void)
 {
     ui_acquire();
-    lv_obj_set_style_bg_color(lv_scr_act(), COLOR_MAIN_BG, LV_STATE_DEFAULT);
+//    lv_obj_set_style_bg_color(lv_scr_act(), COLOR_MAIN_BG, LV_STATE_DEFAULT);
     ui_button_style_init();
 
     lv_indev_t *indev = lv_indev_get_next(NULL);
@@ -570,29 +552,52 @@ esp_err_t ui_main_start(void)
 
     lv_obj_clear_flag(lv_scr_act(), LV_OBJ_FLAG_SCROLLABLE);
 
+    // Main background
+    lv_img_t *bg_img = lv_img_create(lv_scr_act());
+    lv_img_set_src(bg_img, "S:spiffs/bg.jpg");
+    lv_obj_set_pos(bg_img, 0, 0);
+    lv_obj_set_width(bg_img, LV_HOR_RES);
+    lv_obj_set_height(bg_img, LV_VER_RES);
+
+    lv_style_init(&g_style);
+    lv_style_set_bg_opa(&g_style, LV_OPA_TRANSP);
+
     // Create status bar
     g_status_bar = lv_obj_create(lv_scr_act());
     lv_obj_set_size(g_status_bar, lv_obj_get_width(lv_obj_get_parent(g_status_bar)), 36);
     lv_obj_clear_flag(g_status_bar, LV_OBJ_FLAG_SCROLLABLE);
     lv_obj_set_style_radius(g_status_bar, 0, LV_STATE_DEFAULT);
-    lv_obj_set_style_bg_color(g_status_bar, lv_obj_get_style_bg_color(lv_scr_act(), LV_STATE_DEFAULT), LV_PART_MAIN);
+    lv_obj_set_style_bg_color(g_status_bar, lv_color_hex(0xFFFFFF), LV_PART_MAIN);
+    lv_obj_set_style_bg_opa(g_status_bar, LV_OPA_60, LV_PART_MAIN);
     lv_obj_set_style_border_width(g_status_bar, 0, LV_PART_MAIN);
     lv_obj_set_style_shadow_width(g_status_bar, 0, LV_PART_MAIN);
     lv_obj_align(g_status_bar, LV_ALIGN_TOP_MID, 0, 0);
 
     lv_obj_t *lab_time = lv_label_create(g_status_bar);
-    lv_label_set_text_static(lab_time, "12-12 23:59");
-    lv_obj_set_style_text_color(lab_time, COLOR_PAGE_BG, LV_PART_MAIN);
+    lv_label_set_text_static(lab_time, "12-12 23:59 星期四");
+    lv_obj_set_style_text_color(lab_time, COLOR_TEXT, LV_PART_MAIN);
     lv_obj_align(lab_time, LV_ALIGN_LEFT_MID, 0, 0);
+    lv_label_set_recolor(lab_time, true);
+    lv_obj_set_style_text_font(lab_time, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
     lv_timer_t *timer = lv_timer_create(clock_run_cb, 1000, (void *) lab_time);
     clock_run_cb(timer);
 
-    lv_timer_t *timer2 = lv_timer_create(weather_run_cb, 1000, NULL);
+
+    lv_obj_t *lab_weather = lv_label_create(g_status_bar);
+    lv_label_set_text_static(lab_weather, "地区 天气 --℃ --%");
+    lv_label_set_recolor(lab_weather, true);
+    lv_obj_set_style_text_font(lab_weather, &ESPANDORA_MAIN_FONT, LV_PART_MAIN);
+    lv_obj_set_style_text_color(lab_weather, COLOR_TEXT, LV_PART_MAIN);
+    lv_obj_set_style_text_opa(lab_weather, LV_OPA_80, LV_PART_MAIN);
+    lv_obj_set_style_text_align(lab_weather, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN);
+    lv_obj_align_to(lab_weather, lab_time, LV_ALIGN_OUT_RIGHT_MID, 0, 0);
+
+    lv_timer_t *timer2 = lv_timer_create(weather_run_cb, 1000, lab_weather);
     weather_run_cb(timer2);
 
     g_lab_wifi = lv_label_create(g_status_bar);
-    lv_obj_set_style_text_color(g_lab_wifi, COLOR_PAGE_BG, LV_PART_MAIN);
-    lv_obj_align_to(g_lab_wifi, lab_time, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
+    lv_obj_set_style_text_color(g_lab_wifi, COLOR_TEXT, LV_PART_MAIN);
+    lv_obj_align_to(g_lab_wifi, lab_weather, LV_ALIGN_OUT_RIGHT_MID, 10, 0);
 
     ui_status_bar_set_visible(0);
 

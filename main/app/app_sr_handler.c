@@ -22,6 +22,7 @@
 #include "esp_tts.h"
 #include "esp_tts_voice_template.h"
 #include "util.h"
+#include "ha_client.h"
 #include <string.h>
 
 
@@ -168,6 +169,33 @@ int play_weather()
     }
     free(str);
     free(weather);
+}
+
+int air_conditioner_control(bool on)
+{
+    char *str = malloc(50);
+    memset(str, 0, 50);
+    if (on) {
+        ha_call_service("climate", "turn_on", "climate.miir_ir02_6576_ir_aircondition_control", "");
+        strcpy(str, "空调已打开");
+    } else {
+        ha_call_service("climate", "turn_off", "climate.miir_ir02_6576_ir_aircondition_control", "");
+        strcpy(str, "空调已关闭");
+    }
+    sr_anim_set_text(str);
+    tts_read(str);
+    free(str);
+}
+
+int fan_control()
+{
+    char *str = malloc(50);
+    memset(str, 0, 50);
+    ha_call_service("select", "select_option", "select.remote_ir_1787800922005848064", ",\"option\":\"电源\"");
+    strcpy(str, "指令已发送");
+    sr_anim_set_text(str);
+    tts_read(str);
+    free(str);
 }
 
 static esp_err_t sr_echo_play(audio_segment_t audio)
@@ -339,6 +367,26 @@ void sr_handler_task(void *pvParam)
                 ESP_LOGW(TAG, "SR WEATHER!!!!");
                 play_weather();
                 ESP_LOGW(TAG, "SR WEATHER --- END!!!!");
+                break;
+            case SR_CMD_AC_ON:
+                ESP_LOGW(TAG, "SR_CMD_AC_ON!!!!");
+                air_conditioner_control(true);
+                ESP_LOGW(TAG, "SR_CMD_AC_ON --- END!!!!");
+                break;
+            case SR_CMD_AC_OFF:
+                ESP_LOGW(TAG, "SR_CMD_AC_OFF!!!!");
+                air_conditioner_control(false);
+                ESP_LOGW(TAG, "SR_CMD_AC_OFF --- END!!!!");
+                break;
+            case SR_CMD_FAN_ON:
+                ESP_LOGW(TAG, "SR_CMD_FAN_ON!!!!");
+                fan_control();
+                ESP_LOGW(TAG, "SR_CMD_FAN_ON --- END!!!!");
+                break;
+            case SR_CMD_FAN_OFF:
+                ESP_LOGW(TAG, "SR_CMD_FAN_OFF!!!!");
+                fan_control();
+                ESP_LOGW(TAG, "SR_CMD_FAN_OFF --- END!!!!");
                 break;
             default:
                 ESP_LOGE(TAG, "Unknow cmd");

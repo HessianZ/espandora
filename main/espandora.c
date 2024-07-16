@@ -70,10 +70,10 @@ void app_main(void)
     bsp_display_start();
     bsp_board_init();
 
-//    TraverseDir("/spiffs", 0, 1);
+    TraverseDir("/spiffs", 0, 1);
 
     ESP_LOGI(TAG, "GUI start");
-    bsp_display_brightness_set(75);
+    bsp_display_backlight_on();
     ESP_ERROR_CHECK(ui_main_start());
 
     ESP_LOGI(TAG, "speech recognition start");

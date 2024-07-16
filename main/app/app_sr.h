@@ -52,6 +52,10 @@ typedef enum {
     SR_CMD_PAUSE,
     SR_CMD_FENSI,
     SR_CMD_WEATHER,
+    SR_CMD_AC_ON,
+    SR_CMD_AC_OFF,
+    SR_CMD_FAN_ON,
+    SR_CMD_FAN_OFF,
     SR_CMD_MAX,
 } sr_user_cmd_t;
 
