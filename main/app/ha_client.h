@@ -11,6 +11,8 @@
 #define HA_USER_AGENT "ESPANDORA/1.0"
 #define HA_TOKEN "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiIyZTBjNWJiMjU3ZDk0ZGY3ODljMzkwMjk1MjQzZDM2MSIsImlhdCI6MTcyMTA4OTgyOCwiZXhwIjoyMDM2NDQ5ODI4fQ.udQGcc9LAspri5F3cXRhaToIDT9VuKN90cJ8OBGOSlw"
 
+// REST API doc: https://developers.home-assistant.io/docs/api/rest/
+// websocket message example:
 // {"type":"call_service","domain":"climate","service":"set_hvac_mode","service_data":{"entity_id":"climate.miir_ir02_6576_ir_aircondition_control","hvac_mode":"off"},"id":38}
 // {"type":"call_service","domain":"climate","service":"set_hvac_mode","service_data":{"entity_id":"climate.miir_ir02_6576_ir_aircondition_control","hvac_mode":"off"},"id":39}
 
