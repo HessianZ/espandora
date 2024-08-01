@@ -133,6 +133,8 @@ esp_err_t ha_rest_post(const char *path, const char *data)
     }
     esp_http_client_cleanup(client);
 
+    free(response);
+
     return err;
 }
 
@@ -143,6 +145,9 @@ esp_err_t ha_call_service(const char *domain, const char *service, const char *e
     sprintf(path, "/api/services/%s/%s", domain, service);
     sprintf(json, "{\"entity_id\":\"%s\"%s}", entity_id, data);
     ESP_LOGD(TAG, "ha_call_service: %s - %s", path, json);
+
+    free(json);
+    free(path);
 
     return ha_rest_post(path, json);
 }

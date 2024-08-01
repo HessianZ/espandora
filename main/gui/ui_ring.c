@@ -50,7 +50,7 @@ static void ring_btn_event_handler(lv_event_t *event)
 {
     switch (event->code) {
         case LV_EVENT_CLICKED:
-            mqtt_notify("open");
+//            mqtt_notify("open");
             ui_ring_hide();
             break;
     }

@@ -6,6 +6,9 @@
 #ifndef ESP_MENJIN_SETTINGS_H
 #define ESP_MENJIN_SETTINGS_H
 
+#define MOTION_GPIO_PIN GPIO_NUM_38
+#define SWITCH_GPIO_PIN GPIO_NUM_42
+
 #include "esp_err.h"
 #include "app_sr.h"
 

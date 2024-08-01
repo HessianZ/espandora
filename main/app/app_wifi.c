@@ -241,6 +241,18 @@ esp_err_t app_wifi_start(void)
     bool provisioned = false;
     ESP_ERROR_CHECK(wifi_prov_mgr_is_provisioned(&provisioned));
     if (!provisioned) {
+        wifi_config_t wifi_cfg = {
+            .sta = {
+                .ssid = "https://hessian.cn/ap",
+                .password = "mask-mask",
+            },
+        };
+        ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_STA, &wifi_cfg));
+        esp_restart();
+
+        return ESP_OK;
+
+
         ESP_LOGI(TAG, "Starting provisioning");
         ui_net_config_update_cb(UI_NET_EVT_START_PROV, NULL);
         ESP_ERROR_CHECK(esp_wifi_set_ps(WIFI_PS_MIN_MODEM));

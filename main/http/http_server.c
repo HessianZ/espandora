@@ -242,9 +242,6 @@ esp_err_t api_handler_menjin_cmd(httpd_req_t *req)
 
             ESP_LOGD(TAG, "cmd: %s", param);
 
-            if (strcmp(param, "open") == 0) {
-                mqtt_notify("open");
-            }
         } else {
             httpd_resp_set_status(req, "500 Server Internal Error");
             resp_str = "param 'cmd' not found";

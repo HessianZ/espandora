@@ -8,6 +8,7 @@
 #include <esp_mac.h>
 #include "esp_system.h"
 #include "esp_netif.h"
+#include "driver/gpio.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -15,55 +16,64 @@
 #include "esp_log.h"
 #include "mqtt_client.h"
 #include "settings.h"
-#include "ui_ring.h"
 #include "app_wifi.h"
+#include "mqtt.h"
 
-#define MQTT_TOPIC_PREFIX "menjin/"
+#define MQTT_TOPIC_PREFIX "homeassistant/"
 
 static const char *TAG = "MQTT";
 
+char g_client_id[32] = {0};
 static esp_mqtt_client_handle_t g_client;
-static char g_client_id[32];
-static char g_topic_cmd[64];
-static char g_topic_notify[64];
 
 extern const uint8_t server_root_cert_pem_start[] asm("_binary_server_root_cert_pem_start");
 extern const uint8_t server_root_cert_pem_end[]   asm("_binary_server_root_cert_pem_end");
 
-void mqtt_handle_menjin_cmd(char *payload, int len)
-{
-    if (len == 0) {
-        return;
-    }
+typedef struct {
+    char *id;
+    char *name;
+} ha_sensor_dev_t;
 
-    if (strncmp(payload, "ring", len) == 0) {
-        ui_ring_set_text("门铃响，请开门");
-        ui_ring_show();
-    } else if (strncmp(payload, "open", len) == 0) {
-        ui_ring_show();
-        ui_ring_set_text("门锁已开");
-    } else {
-        ESP_LOGW(TAG, "[menjin] unknown cmd: %.*s", len, payload);
-    }
-}
+typedef struct {
+    ha_sensor_dev_t *dev;
+    char *configTopic;
+    char *integration;
+    char *deviceClass;
+    char *name;
+    char *unit;
+    char *valueName;
+} ha_sensor_ent_t;
 
-void mqtt_client_id(char *id_string);
+static void ha_device_config_push(char *dev_id);
+static void ha_entity_config_push(ha_sensor_ent_t *ent);
 
 static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
 {
     esp_mqtt_client_handle_t client = event->client;
 
+    char ent_id[34] = {0};
+    char topic[128] = {0};
     int msg_id;
     // your_context_t *context = event->context;
     switch (event->event_id) {
         case MQTT_EVENT_CONNECTED:
             ESP_LOGI(TAG, "MQTT_EVENT_CONNECTED");
 
-            msg_id = esp_mqtt_client_subscribe(client, g_topic_cmd, 0);
-            ESP_LOGI(TAG, "subscribe %s successful, msg_id=%d", g_topic_cmd, msg_id);
 
-            msg_id = esp_mqtt_client_subscribe(client, g_topic_notify, 0);
-            ESP_LOGI(TAG, "subscribe %s successful, msg_id=%d", g_topic_notify, msg_id);
+            ha_device_config_push(g_client_id);
+
+            // subcribe command topic
+            ha_entity_id(ent_id, g_client_id, "switch");
+            ha_dev_topic(topic, ent_id, "cmd");
+            msg_id = esp_mqtt_client_subscribe(client, topic, 0);
+            ESP_LOGI(TAG, "subscribe %s successful, msg_id=%d", topic, msg_id);
+            // reset switch state
+            gpio_get_level(SWITCH_GPIO_PIN) ? ha_state_push(ent_id, "ON") : ha_state_push(ent_id, "OFF");
+
+            ha_entity_id(ent_id, g_client_id, "motion");
+            // reset motion state
+            gpio_get_level(MOTION_GPIO_PIN) ? ha_state_push(ent_id, "ON") : ha_state_push(ent_id, "OFF");
+
             break;
 
         case MQTT_EVENT_DISCONNECTED:
@@ -88,7 +98,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
             ESP_LOGI(TAG, "MQTT_EVENT_DATA");
             ESP_LOGI(TAG, "Receive [%.*s] DATA: %.*s", event->topic_len, event->topic, event->data_len, event->data);
 
-            mqtt_handle_menjin_cmd(event->data, event->data_len);
+            mqtt_handle_cmd(event->data, event->data_len);
 
             break;
 
@@ -117,11 +127,37 @@ void mqtt_client_id(char *id_string)
     sprintf(id_string, "espandora-%02x%02X%02X%02x%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
 }
 
+int ha_entity_id(char *ent_id, char *dev_id, char *entity_name) {
+    ent_id[0] = '\0';
+    return sprintf(ent_id, "%s-%s", dev_id, entity_name);
+}
+
+int ha_dev_topic(char* topic, char *ent_id, char* suffix) {
+    topic[0] = '\0';
+    return sprintf(topic, MQTT_TOPIC_PREFIX "%s/%s", ent_id, suffix);
+}
+
+void mqtt_handle_cmd(char *payload, int len) {
+    if (len == 0) {
+        return;
+    }
+
+    char ent_id[64] = {0};
+    ha_entity_id(ent_id, g_client_id, "switch");
+
+    if (strncmp(payload, "ON", len) == 0) {
+        gpio_set_level(SWITCH_GPIO_PIN, 1);
+        ha_state_push(ent_id, "ON");
+    } else if (strncmp(payload, "OFF", len) == 0) {
+        gpio_set_level(SWITCH_GPIO_PIN, 0);
+        ha_state_push(ent_id, "OFF");
+    } else {
+        ESP_LOGW(TAG, "unknown cmd: %.*s", len, payload);
+    }
+}
+
 void mqtt_task(void *pvParameters)
 {
-    g_topic_cmd[0] = '\0';
-    g_topic_notify[0] = '\0';
-
     sys_param_t *settings = settings_get_parameter();
 
     if (strlen(settings->mqtt_url) == 0) {
@@ -132,9 +168,6 @@ void mqtt_task(void *pvParameters)
 
     // 生成 clieng_id
     mqtt_client_id(g_client_id);
-
-    sprintf(g_topic_cmd, MQTT_TOPIC_PREFIX "%s/cmd", settings->menjin_id);
-    sprintf(g_topic_notify, MQTT_TOPIC_PREFIX "%s/notify", settings->menjin_id);
 
 #if CONFIG_IDF_TARGET_ESP8266
     esp_mqtt_client_config_t mqtt_cfg = {
@@ -156,7 +189,7 @@ void mqtt_task(void *pvParameters)
     esp_mqtt_client_config_t mqtt_cfg = {
             .broker = {
                     .address.uri = settings->mqtt_url,
-                    .verification.certificate = (const char *) server_root_cert_pem_start
+//                    .verification.certificate = (const char *) server_root_cert_pem_start
             },
             .credentials = {
                     .client_id = g_client_id,
@@ -190,7 +223,134 @@ void mqtt_task(void *pvParameters)
     vTaskDelete(NULL);
 }
 
-void mqtt_notify(char* content)
+void mqtt_publish(char *topic, char* content, int retain)
 {
-    esp_mqtt_client_publish(g_client, g_topic_notify, content, 0, 1, 0);
+    ESP_LOGI(TAG, "mqtt_publish: %s, %s", topic, content);
+    esp_mqtt_client_publish(g_client, topic, content, 0, 1, retain);
+}
+
+// Home Assistant
+
+
+/**
+ * 注册传感器实体
+ * @param ent
+ */
+static void ha_entity_config_push(ha_sensor_ent_t *ent)
+{
+    char ent_id[64] = {0};
+    char config_topic[128] = {0};
+    char state_topic[128] = {0};
+    char cmd_topic[128] = {0};
+
+    ha_entity_id(ent_id, ent->dev->id, ent->valueName);
+    sprintf(config_topic, "homeassistant/%s/%s/config", ent->integration, ent_id);
+
+    ha_dev_topic(cmd_topic, ent_id, "cmd");
+    ha_dev_topic(state_topic, ent_id, "state");
+
+    char *json = calloc(1, 512);
+    json[0] = '\0';
+
+    if (strncmp(ent->integration, "switch", 6) == 0) {
+        const char *fmt = "{"
+                          "\"name\": \"%s\""
+                          ",\"device_class\": \"%s\""
+                          ",\"state_topic\": \"%s\""
+                          ",\"command_topic\": \"%s\""
+                          ",\"payload_on\": \"ON\""
+                          ",\"payload_off\": \"OFF\""
+                          ",\"unique_id\": \"%s\""
+                          ",\"device\": {\"identifiers\": [\"%s\"], \"name\": \"%s\" }"
+                          "}";
+        sprintf(json, fmt, ent->name, ent->deviceClass, state_topic, cmd_topic, ent_id, ent->dev->id, ent->dev->name);
+    } else if (strncmp(ent->integration, "sensor", 6) == 0) {
+        char *fmt = "{"
+                    "\"name\": \"%s\""
+                    ",\"device_class\": \"%s\""
+                    ",\"state_topic\": \"homeassistant/sensor/%s/state\""
+                    ",\"unit_of_measurement\": \"%s\""
+                    ",\"value_template\": \"{{value_json.%s}}\""
+                    ",\"unique_id\": \"%s\""
+                    ",\"device\": {\"identifiers\": [\"%s\"], \"name\": \"%s\" }"
+                    "}";
+        sprintf(json, fmt, ent->name, ent->deviceClass, ent->dev->id, ent->unit, ent->valueName, ent_id, ent->dev->id, ent->dev->name);
+    } else {
+        const char *fmt = "{"
+                          "\"name\": \"%s\""
+                          ",\"device_class\": \"%s\""
+                          ",\"state_topic\": \"%s\""
+                          ",\"unique_id\": \"%s\""
+                          ",\"device\": {\"identifiers\": [\"%s\"], \"name\": \"%s\" }"
+                          "}";
+        sprintf(json, fmt, ent->name, ent->deviceClass, state_topic, ent_id, ent->dev->id, ent->dev->name);
+    }
+
+    // Retain: The -r switch is added to retain the configuration config_topic in the broker. Without this, the sensor will not be available after Home Assistant restarts.
+    mqtt_publish(config_topic, json, 1);
+    free(json);
+}
+
+/**
+ * 注册传感器设备
+ * @param dev_id
+ */
+static void ha_device_config_push(char *dev_id)
+{
+    char name[64] = "Espandora";
+    ha_sensor_dev_t dev = {
+            .id = dev_id,
+            .name = name
+    };
+
+    ha_sensor_ent_t ent = {
+            .dev = &dev,
+            .integration = "switch",
+            .deviceClass = "switch",
+            .name = "音箱",
+            .valueName = "switch",
+    };
+    ha_entity_config_push(&ent);
+
+    ent.integration = "binary_sensor";
+    ent.deviceClass = "motion";
+    ent.name = "人体感应";
+    ent.valueName = "motion";
+    ha_entity_config_push(&ent);
+
+    ent.integration = "sensor";
+    ent.deviceClass = "temperature";
+    ent.name = "气温";
+    ent.unit = "℃";
+    ent.valueName = "temperature";
+    ha_entity_config_push(&ent);
+
+    // 空气湿度
+    ent.integration = "sensor";
+    ent.deviceClass = "humidity";
+    ent.name = "空气湿度";
+    ent.unit = "%";
+    ent.valueName = "humidity";
+    ha_entity_config_push(&ent);
+
+    // 大气压
+    ent.integration = "sensor";
+    ent.deviceClass = "atmospheric_pressure";
+    ent.name = "大气压";
+    ent.unit = "Pa";
+    ent.valueName = "pressure";
+    ha_entity_config_push(&ent);
+}
+
+/**
+ * 推送state
+ * @param ent_id
+ * @param report
+ */
+void ha_state_push(char *ent_id, char *state)
+{
+    char topic[128] = {0};
+    ha_dev_topic(topic, ent_id, "state");
+
+    mqtt_publish(topic, state, 0);
 }
