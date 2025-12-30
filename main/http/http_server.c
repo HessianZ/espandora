@@ -261,7 +261,7 @@ esp_err_t api_handler_menjin_cmd(httpd_req_t *req)
 // HTTP Error (404) Handler - Redirects all requests to the root page
 esp_err_t http_404_error_handler(httpd_req_t *req, httpd_err_code_t err)
 {
-    char filename[HTTPD_MAX_URI_LEN+10];
+    char filename[CONFIG_HTTPD_MAX_URI_LEN+10];
     sprintf(filename, CONFIG_BSP_SPIFFS_MOUNT_POINT "%s", req->uri);
 
     return send_file_response(req, filename);
@@ -333,8 +333,8 @@ httpd_handle_t http_server_start()
         ESP_LOGI(TAG, "Started HTTP server on port: '%d'", config.server_port);
         ESP_LOGI(TAG, "Max URI handlers: '%d'", config.max_uri_handlers);
         ESP_LOGI(TAG, "Max Open Sessions: '%d'", config.max_open_sockets);
-        ESP_LOGI(TAG, "Max Header Length: '%d'", HTTPD_MAX_REQ_HDR_LEN);
-        ESP_LOGI(TAG, "Max URI Length: '%d'", HTTPD_MAX_URI_LEN);
+        ESP_LOGI(TAG, "Max Header Length: '%d'", CONFIG_HTTPD_MAX_REQ_HDR_LEN);
+        ESP_LOGI(TAG, "Max URI Length: '%d'", CONFIG_HTTPD_MAX_REQ_HDR_LEN);
         ESP_LOGI(TAG, "Max Stack Size: '%d'", config.stack_size);
         return hd;
     }

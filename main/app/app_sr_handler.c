@@ -61,10 +61,10 @@ void tts_read(char *str)
     void* voicedata;
 #if ESP_IDF_VERSION >= ESP_IDF_VERSION_VAL(5, 0, 0)
     esp_partition_mmap_handle_t mmap;
-    esp_err_t err=esp_partition_mmap(part, 0, part->size, ESP_PARTITION_MMAP_DATA, &voicedata, &mmap);
+    esp_err_t err=esp_partition_mmap(part, 0, part->size, ESP_PARTITION_MMAP_DATA, (const void**)&voicedata, &mmap);
 #else
     spi_flash_mmap_handle_t mmap;
-    esp_err_t err=esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, &voicedata, &mmap);
+    esp_err_t err=esp_partition_mmap(part, 0, part->size, SPI_FLASH_MMAP_DATA, (const void**)&voicedata, &mmap);
 #endif
     if (err != ESP_OK) {
         ESP_LOGE(TAG, "Couldn't map voice data partition!\n");
@@ -139,9 +139,9 @@ int play_weather()
         memset(tempCn, 0, 12);
         memset(windSpeedCn, 0, 12);
         memset(humiCn, 0, 12);
-        num2cn(atoi(weather->temp), &tempCn);
-        num2cn(atoi(weather->humi), &humiCn);
-        num2cn(atoi(weather->windSpeed), &windSpeedCn);
+        num2cn(atoi(weather->temp), tempCn);
+        num2cn(atoi(weather->humi), humiCn);
+        num2cn(atoi(weather->windSpeed), windSpeedCn);
 
         sprintf(str, "%s %s %s℃ 湿度%s%% %s%s级",
                 weather->city,

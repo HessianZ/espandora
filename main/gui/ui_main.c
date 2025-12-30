@@ -641,7 +641,7 @@ esp_err_t ui_main_start(void)
     lv_obj_clear_flag(lv_scr_act(), LV_OBJ_FLAG_SCROLLABLE);
 
     // Main background
-    lv_img_t *bg_img = lv_img_create(lv_scr_act());
+    lv_obj_t *bg_img = lv_img_create(lv_scr_act());
     lv_img_set_src(bg_img, "S:spiffs/2.jpg");
     lv_obj_set_pos(bg_img, 0, 0);
     lv_obj_set_width(bg_img, LV_HOR_RES);

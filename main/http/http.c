@@ -15,8 +15,8 @@
 #define BILIBILI_UID "10442962"
 #define BILIBILI_FANS_URL "https://api.bilibili.com/x/relation/stat?vmid=" BILIBILI_UID "&jsonp=jsonp"
 
-// 101280401 = 梅州
-#define CITY_CODE "101280401"
+// #define CITY_CODE "101280401" // 梅州
+#define CITY_CODE "101080201" // 包头
 #define WEATHER_URL "http://d1.weather.com.cn/weather_index/" CITY_CODE ".html"
 #define WEATHER_REFERER "http://www.weather.com.cn/"
 

@@ -33,8 +33,8 @@ void num2cn(int number, char* dest)
         return;
     }
     char num_str[10];
-    sprintf(&num_str, "%d", number);
-    char *ns = &num_str;
+    sprintf(num_str, "%d", number);
+    char *ns = num_str;
     for (int i = 0, len = strlen(ns); i < len; ++i) {
         int num = ns[i] - 0x30; // ASCII 0-9 = 30-39
         strcat(dest, cnNums[num]);
