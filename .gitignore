@@ -9,7 +9,7 @@
 .DS_Store
 
 # project files
-**/sdkconfig
+# **/sdkconfig
 **/sdkconfig.old
 **/build
 

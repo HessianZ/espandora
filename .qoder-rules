@@ -1,0 +1,338 @@
+# Qoder 开发约束规则
+
+## 🚫 禁止修改的目录和文件
+
+### managed_components/
+**严格禁止修改此目录下的任何内容**
+- 此目录由 ESP Component Manager 自动管理
+- 包含所有通过 `idf_component.yml` 声明的依赖组件
+- 任何修改都会在下次 `idf.py build` 时被覆盖
+- 如需修改依赖组件，应该：
+  - 将组件复制到 `components/` 目录
+  - 修改 `main/idf_component.yml` 移除该依赖
+  - 在本地副本上进行修改
+
+### build/
+- 编译生成目录，不应手动修改
+- 使用 `idf.py fullclean` 清理后重新生成
+
+### sdkconfig
+- 严格禁止删除sdkconfig
+- 手动修改容易导致配置错误
+- 由 `idf.py menuconfig` 生成
+- 应使用 menuconfig 界面或修改 `sdkconfig.defaults`
+
+---
+
+## 📝 开发规范
+
+### 代码修改原则
+
+1. **只修改以下目录中的代码**：
+   - `main/` - 主应用程序代码
+   - `components/` - 自定义组件（aht, bmp280, bsp, i2cdev, esp_idf_lib_helpers）
+   - `spiffs/` - SPIFFS 文件系统内容
+
+2. **配置文件**：
+   - 优先修改 `sdkconfig.defaults` 而非 `sdkconfig`
+   - 使用 `idf.py save-defconfig` 保存配置
+   - 提交时只提交 `sdkconfig.defaults`
+
+3. **依赖管理**：
+   - 添加新依赖修改 `main/idf_component.yml`
+   - 使用官方组件注册表中的组件
+   - 避免直接依赖 GitHub URL（不稳定）
+
+### 代码风格
+
+1. **命名规范**：
+   - 文件名: 小写+下划线 (`app_sensor.c`)
+   - 函数名: 小写+下划线 (`app_wifi_init()`)
+   - 宏定义: 大写+下划线 (`CONFIG_BSP_BOARD`)
+   - 静态变量: `g_` 前缀 (`g_sr_data`)
+   - 标签: 大写 TAG (`static const char *TAG = "module"`)
+
+2. **日志规范**：
+   - 使用 ESP_LOG* 宏，不使用 printf
+   - 级别选择: ERROR < WARN < INFO < DEBUG < VERBOSE
+   - 包含模块标签: `ESP_LOGI(TAG, "message")`
+
+3. **错误处理**：
+   - 使用 `ESP_ERROR_CHECK()` 检查关键错误
+   - 使用 `ESP_RETURN_ON_ERROR()` 进行错误传播
+   - 使用 `ESP_GOTO_ON_ERROR()` 进行资源清理
+
+4. **内存管理**：
+   - 使用 `heap_caps_malloc()` 分配内存时指定类型
+   - PSRAM 适用于大缓冲区
+   - 及时释放资源，避免泄漏
+   - 使用 `esp_get_free_heap_size()` 监控内存
+
+### 模块化开发
+
+1. **组件结构**：
+   ```
+   components/my_component/
+   ├── CMakeLists.txt          # 构建配置
+   ├── Kconfig                 # 配置选项
+   ├── component.mk            # (可选) Make 构建
+   ├── include/                # 公开头文件
+   │   └── my_component.h
+   └── src/                    # 源文件
+       └── my_component.c
+   ```
+
+2. **头文件管理**：
+   - 公开接口放在 `include/`
+   - 内部实现放在 `src/` 或 `priv_include/`
+   - 使用 `#pragma once` 防止重复包含
+
+3. **任务创建规范**：
+   - 指定合适的栈大小（避免溢出）
+   - 指定任务优先级（1-25，数字越大优先级越高）
+   - 关键任务固定到特定核心（`xTaskCreatePinnedToCore`）
+   - 任务名称使用描述性字符串
+
+### GUI 开发规范
+
+1. **LVGL 使用**：
+   - 使用 `ui_acquire()` / `ui_release()` 保护 LVGL 对象
+   - 避免在非 LVGL 任务中直接操作对象
+   - 使用 `lv_timer_handler()` 定期更新
+   - 注意内存配置 (`CONFIG_LV_MEM_CUSTOM`)
+
+2. **字体和图像资源**：
+   - 放在 `main/gui/font/` 和 `main/gui/image/`
+   - 使用 LVGL 字体转换工具生成 C 数组
+   - 大资源考虑放在 SPIFFS 中
+
+3. **界面布局**：
+   - 使用 LVGL 容器和布局管理器
+   - 适配 ESP32-S3-BOX-Lite 屏幕尺寸
+   - 考虑触摸操作的响应
+
+### 网络编程规范
+
+1. **Wi-Fi 管理**：
+   - 使用事件驱动机制
+   - 处理断线重连
+   - 提供配网接口（BLE Provisioning）
+
+2. **MQTT 客户端**：
+   - 使用 QoS 1 确保消息可靠传输
+   - 实现重连机制
+   - 处理订阅主题消息
+
+3. **HTTP 服务器**：
+   - 限制同时连接数
+   - 实现超时机制
+   - 注意 URL 编码和安全性
+
+### 传感器驱动开发
+
+1. **I2C 通信**：
+   - 使用 BSP 提供的 I2C 初始化
+   - 添加错误重试机制
+   - 注意总线共享和锁机制
+
+2. **数据采集**：
+   - 使用定时器或周期任务
+   - 添加数据校验
+   - 考虑传感器预热时间
+
+---
+
+## 🔧 构建和调试
+
+### 构建命令
+
+```bash
+# 启用ESP-IDF环境
+soruce $IDF_PATH/export.sh
+
+# 设置目标芯片
+idf.py set-target esp32s3
+
+# 配置项目
+idf.py menuconfig
+
+# 编译
+idf.py build
+
+# 烧录
+idf.py -p PORT flash
+
+# 监控日志
+idf.py -p PORT monitor
+
+# 清理构建
+idf.py fullclean
+```
+
+### 调试技巧
+
+1. **日志级别控制**：
+   ```c
+   // 在 app_main() 中设置
+   esp_log_level_set("module_tag", ESP_LOG_DEBUG);
+   ```
+
+2. **内存监控**：
+   - 使用 `heap_caps_print_heap_info()` 打印堆信息
+   - 启用 `CONFIG_FREERTOS_GENERATE_RUN_TIME_STATS`
+   - 使用 `vTaskList()` 查看任务状态
+
+3. **性能分析**：
+   - 使用 `esp_timer_get_time()` 测量执行时间
+   - 启用 `CONFIG_FREERTOS_VTASKLIST_INCLUDE_COREID`
+   - 使用 IDF Monitor 解析崩溃日志
+
+---
+
+## ⚠️ 常见陷阱
+
+1. **任务栈溢出**：
+   - 症状: 随机崩溃、WDT 重启
+   - 解决: 增加栈大小，启用栈溢出检测
+
+2. **PSRAM 访问失败**：
+   - 症状: 访问特定内存区域崩溃
+   - 解决: 确保 PSRAM 配置正确，DMA 缓冲区使用内部 RAM
+
+3. **I2C 总线冲突**：
+   - 症状: 传感器读取失败
+   - 解决: 使用互斥锁保护 I2C 操作
+
+4. **LVGL 多线程问题**：
+   - 症状: 界面显示异常、崩溃
+   - 解决: 必须使用 `ui_acquire()` / `ui_release()`
+
+5. **Wi-Fi 内存不足**：
+   - 症状: 连接失败、OOM
+   - 解决: 调整 `CONFIG_ESP_WIFI_STATIC_RX_BUFFER_NUM` 等配置
+
+---
+
+## 📚 参考资源
+
+- [ESP-IDF 编程指南](https://docs.espressif.com/projects/esp-idf/zh_CN/latest/esp32s3/)
+- [ESP32-S3 技术参考手册](https://www.espressif.com/sites/default/files/documentation/esp32-s3_technical_reference_manual_cn.pdf)
+- [LVGL 文档](https://docs.lvgl.io/)
+- [ESP Component Registry](https://components.espressif.com/)
+
+---
+
+## 🎯 提交规范
+
+1. **提交前检查**：
+   - 代码编译通过
+   - 运行正常，无崩溃
+   - 日志无异常错误
+   - 代码符合规范
+
+2. **提交内容**：
+   - 只提交源代码和配置文件
+   - 不提交 `build/`, `managed_components/`, `sdkconfig`
+   - 使用 `.gitignore` 排除生成文件
+
+3. **提交信息**：
+   - 使用清晰的描述
+   - 说明修改原因和影响
+   - 关联相关的 Issue
+
+---
+
+# 🔥 智能刷写策略（重要：必须遵守）
+
+### 自动选择刷写命令
+
+Qoder 在执行刷写操作时，**必须**根据变更内容自动选择合适的命令：
+
+#### 使用 `idf.py flash`（完整刷写，~120秒）
+
+**强制使用场景**：
+1. **分区表变更**
+   - 修改了 `partitions.csv`
+   - 添加/删除/调整分区
+
+2. **系统配置变更**
+   - 修改了 `sdkconfig.defaults`
+   - 修改了 `Kconfig.projbuild`
+   - 执行过 `idf.py menuconfig` 并保存
+
+3. **引导加载程序变更**
+   - 修改了 bootloader 配置
+   - 更新了 ESP-IDF 版本
+
+4. **文件系统变更**
+   - 修改了 `spiffs/` 目录内容
+   - 需要更新 `storage` 或 `voice_data` 分区
+
+5. **首次编译**
+   - 执行过 `idf.py fullclean`
+   - 新克隆的代码库
+   - `build/` 目录不完整
+
+6. **语音模型更新**（罕见）
+   - 更新 `model` 分区数据
+   - 模型损坏需重新写入
+
+#### 使用 `idf.py app-flash`（快速刷写，~30秒，节省75%时间）
+
+**适用场景**：
+1. **应用代码变更**
+   - 仅修改 `main/**/*.c` 或 `main/**/*.h`
+   - 仅修改 `components/**/*.c` 或 `components/**/*.h`
+
+2. **GUI 变更**
+   - 修改 `main/gui/*.c`
+   - 修改字体/图像数组
+
+3. **日常开发调试**
+   - Bug 修复
+   - 添加日志
+   - 调整参数
+
+### 判断方法（Qoder 必须执行）
+
+```bash
+# 检查是否有分区表、配置、文件系统变更
+git diff --name-only HEAD | grep -E "(partitions\.csv|sdkconfig|Kconfig|spiffs/)"
+
+# 有输出 → 使用 flash
+# 无输出 → 使用 app-flash（节省 90 秒）
+```
+
+### 推荐波特率
+
+```bash
+# 快速刷写（推荐）
+idf.py -p PORT -b 921600 app-flash
+
+# 完整刷写
+idf.py -p PORT -b 921600 flash
+```
+
+### 常见错误处理
+
+| 现象 | 原因 | 解决方案 |
+|------|------|----------|
+| app-flash 后语音识别失败 | 模型分区未初始化 | 执行一次完整 `flash` |
+| app-flash 后配置不生效 | 错误使用了快速刷写 | 改用 `flash` |
+| 刷写速度仍然慢 | 波特率过低 | 添加 `-b 921600` 参数 |
+
+### Qoder 行为规范
+
+1. **每次刷写前必须判断**使用 flash 还是 app-flash
+2. **优先使用 app-flash**，除非检测到必须用 flash 的场景
+3. **向用户说明**选择理由（如"检测到仅代码变更，使用 app-flash 节省时间"）
+4. **遇到刷写失败**时，建议用户尝试完整 flash
+
+---
+
+## 版本信息
+
+- ESP-IDF: >= 5.5.1（从 5.1 升级）
+- 目标芯片: ESP32-S3
+- 开发板: ESP32-S3-BOX-Lite
+- 最后更新: 2025-12-31
