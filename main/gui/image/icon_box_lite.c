@@ -273,11 +273,11 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_IMG_ICON_BOX_LITE uint8_t icon_box_lit
 };
 
 const lv_img_dsc_t icon_box_lite = {
-  .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
-  .header.always_zero = 0,
-  .header.reserved = 0,
+  .header.cf = LV_COLOR_FORMAT_RGB565A8,
+  .header.stride = 0,
+  .header.reserved_2 = 0,
   .header.w = 72,
   .header.h = 62,
-  .data_size = 4464 * LV_IMG_PX_SIZE_ALPHA_BYTE,
+  .data_size = 4464 * 4,
   .data = icon_box_lite_map,
 };

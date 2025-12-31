@@ -57,7 +57,9 @@ void ui_hint_start(void (*fn)(void))
     g_hint_end_cb = fn;
 
     /*Create a Tab view object*/
-    lv_obj_t *tabview = lv_tabview_create(lv_scr_act(), LV_DIR_TOP, 0);
+    lv_obj_t *tabview = lv_tabview_create(lv_scr_act());  // LVGL 9.x: removed dir and tab_bar_size params
+    lv_obj_set_style_bg_color(lv_tabview_get_tab_bar(tabview), lv_color_white(), 0);  // Hide tab bar
+    lv_obj_set_height(lv_tabview_get_tab_bar(tabview), 0);  // Hide tab bar
     LV_IMG_DECLARE(hand_down);
     LV_IMG_DECLARE(hand_left);
     lv_obj_t *hint_page = NULL;
@@ -91,7 +93,7 @@ void ui_hint_start(void (*fn)(void))
         lv_obj_align_to(img, lab_hint, LV_ALIGN_BOTTOM_MID, 0, 60);
     }
 
-    static const lv_point_t line_point[] = { {.x = 0, .y = 0}, {.x = 0, .y = 170} };
+    static const lv_point_precise_t line_point[] = { {.x = 0, .y = 0}, {.x = 0, .y = 170} };  // LVGL 9.x: lv_point_t → lv_point_precise_t
     for (int i = 0; i < 2; i++) {
         lv_obj_t *line = lv_line_create(hint_page);
         lv_line_set_points(line, line_point, 2);

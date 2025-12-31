@@ -548,11 +548,11 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_LARGE_CONST LV_ATTRIBUTE_IMG_LOGO_JION
 };
 
 const lv_img_dsc_t logo_jiong = {
-  .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
-  .header.always_zero = 0,
-  .header.reserved = 0,
+  .header.cf = LV_COLOR_FORMAT_RGB565A8,
+  .header.stride = 0,
+  .header.reserved_2 = 0,
   .header.w = 128,
   .header.h = 128,
-  .data_size = 16384 * LV_IMG_PX_SIZE_ALPHA_BYTE,
+  .data_size = 16384 * 4,
   .data = logo_jiong_map,
 };

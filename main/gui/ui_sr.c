@@ -50,7 +50,7 @@ static int int16_sin(int32_t deg)
 
 static void sr_label_event_handler(lv_event_t *event)
 {
-    char *text = (char *) event-> param;
+    char *text = (char *) lv_event_get_param(event);  // LVGL 9.x API
     if (NULL != text) {
         lv_label_set_text_static(g_sr_label, text);
     }
@@ -58,7 +58,7 @@ static void sr_label_event_handler(lv_event_t *event)
 
 static void sr_mask_event_handler(lv_event_t *event)
 {
-    bool active = (bool) event->param;
+    bool active = (bool) lv_event_get_param(event);  // LVGL 9.x API
 
     if (active) {
         lv_indev_t *indev = lv_indev_get_next(NULL);
@@ -183,15 +183,15 @@ void ui_sr_anim_init(void)
 
 void sr_anim_start(void)
 {
-    lv_event_send(g_sr_mask, LV_EVENT_VALUE_CHANGED, (void *) true);
+    lv_obj_send_event(g_sr_mask, LV_EVENT_VALUE_CHANGED, (void *) true);  // LVGL 9.x API
 }
 
 void sr_anim_stop(void)
 {
-    lv_event_send(g_sr_mask, LV_EVENT_VALUE_CHANGED, (void *) false);
+    lv_obj_send_event(g_sr_mask, LV_EVENT_VALUE_CHANGED, (void *) false);  // LVGL 9.x API
 }
 
 void sr_anim_set_text(char *text)
 {
-    lv_event_send(g_sr_label, LV_EVENT_VALUE_CHANGED, (void *) text);
+    lv_obj_send_event(g_sr_label, LV_EVENT_VALUE_CHANGED, (void *) text);  // LVGL 9.x API
 }

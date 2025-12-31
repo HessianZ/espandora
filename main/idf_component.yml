@@ -1,9 +1,9 @@
 ## IDF Component Manager Manifest File
 dependencies:
-  idf: ">=5.1"
+  idf: ">=5.5.1"
 
   chmorgan/esp-file-iterator: "1.0.0"
-  espressif/esp-sr: "1.3.*"
+  espressif/esp-sr: "1.3.*"  # 1.3.4 compatible with IDF 5.5.1
   espressif/json_generator: ^1
-  espressif/json_parser: =1.0.0
+  espressif/json_parser: ^1.0.0  # More flexible version constraint
   espressif/qrcode: ^0.1.0

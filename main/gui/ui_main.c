@@ -28,7 +28,7 @@
 
 #define COLOR_MAIN_BG_HEX 0x272838
 #define COLOR_PAGE_BG_HEX 0xBFCAD0
-#define COLOR_PRIMARY_HEX 0X970C10
+#define COLOR_PRIMARY_HEX 0x970C10
 #define COLOR_TEXT_HEX 0x272838
 
 #define COLOR_MAIN_BG lv_color_hex(COLOR_MAIN_BG_HEX)
@@ -141,6 +141,10 @@ lv_group_t *ui_get_btn_op_group(void)
 
 static void ui_status_bar_set_visible(bool visible)
 {
+    if (!g_status_bar) {
+        return;
+    }
+    
     if (visible) {
         // update all state
         ui_main_status_bar_set_wifi(app_wifi_is_connected());
@@ -186,8 +190,8 @@ static void ui_help(void)
 }
 
 typedef struct {
-    char *name;
-    void *img_src;
+    const char *name;
+    const void *img_src;
 } item_desc_t;
 
 LV_IMG_DECLARE(icon_about_us)
@@ -352,7 +356,7 @@ static void led_off(lv_obj_t *obj)
 {
     lv_obj_t *led = lv_obj_get_child(obj, 0);
 
-    lv_led_on(led);
+    lv_led_off(led);
 }
 
 static void menu_change_cb(lv_event_t *e)
@@ -367,7 +371,7 @@ static void menu_change_cb(lv_event_t *e)
     } else if (LV_EVENT_DEFOCUSED == code) {
         led_off(obj);
     } else if (LV_EVENT_CLICKED == code) {
-        lv_event_send(g_img_btn, LV_EVENT_CLICKED, g_img_btn);
+        lv_obj_send_event(g_img_btn, LV_EVENT_CLICKED, g_img_btn);  // LVGL 9.x API
     }
 }
 
@@ -388,6 +392,12 @@ static void menu_enter_cb(lv_event_t *e)
         ui_btn_rm_all_cb();
         ui_led_set_visible(false);
         lv_obj_del(menu_btn_parent);
+        // Clear all menu-related pointers after deletion
+        g_page_menu = NULL;
+        g_page_container = NULL;
+        for (size_t i = 0; i < sizeof(g_led_item) / sizeof(g_led_item[0]); i++) {
+            g_led_item[i] = NULL;
+        }
         g_focus_last_obj = NULL;
 
         switch (g_item_index) {
@@ -518,48 +528,60 @@ static char WEEKS[7][4] = {
 
 static void clock_run_cb(lv_timer_t *timer)
 {
-    if (!app_wifi_is_connected()) {
-        return;
-    }
-
     time_t now;
     struct tm timeinfo;
     time(&now);
     localtime_r(&now, &timeinfo);
 
-    // time did not set
+    // Time not synced yet (no NTP sync, system time invalid)
+    // ESP32 without RTC battery will reset to 1970 on boot
     if (timeinfo.tm_year < (2016 - 1900)) {
         return;
     }
 
     ui_acquire();
-    // status bar
+    
+    // Status bar - show date and weekday
     char *week = WEEKS[timeinfo.tm_wday];
-    lv_label_set_text_fmt(lab_status_bar_time, "%02u-%02u #970C10 周%s#", timeinfo.tm_mon + 1, timeinfo.tm_mday, week);
+    if (lab_status_bar_time) {
+        lv_label_set_text_fmt(lab_status_bar_time, "%02u-%02u #970C10 周%s#", timeinfo.tm_mon + 1, timeinfo.tm_mday, week);
+    }
 
-    // dashboard
+    // Dashboard - update clock and sensor data if on main page
     if (g_item_index == 0) {
-        // datetime
-        lv_label_set_text_fmt(lab_dashboard_time_shadow, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-        lv_label_set_text_fmt(lab_dashboard_time, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
-//        lv_label_set_text_fmt(lab_dashboard_date, "%d / %d  %d", timeinfo.tm_mon + 1, timeinfo.tm_mday, timeinfo.tm_wday);
+        // Clock display
+        if (lab_dashboard_time_shadow) {
+            lv_label_set_text_fmt(lab_dashboard_time_shadow, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+        }
+        if (lab_dashboard_time) {
+            lv_label_set_text_fmt(lab_dashboard_time, "%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min);
+        }
 
-        // temperature and humidity
-        lv_label_set_text_fmt(lab_dashboard_rht, "室内 温度 %.1f℃ 湿度 %.1f%%", g_rht_data.temperature,
-                              g_rht_data.humidity);
+        // Indoor temperature and humidity from local sensor
+        if (lab_dashboard_rht) {
+            lv_label_set_text_fmt(lab_dashboard_rht, "室内 温度 %.1f℃ 湿度 %.1f%%", g_rht_data.temperature,
+                                  g_rht_data.humidity);
+        }
     }
 
     ui_release();
 }
 
+#define WEATHER_POLL_INTERVAL_MS   (120 * 1000)
+#define WEATHER_BOOT_DELAY_MS      1000
+
 static void weather_run_cb(lv_timer_t *timer)
 {
+    static bool first_call = true;  // LVGL 9.x: manual tracking instead of timer->period
+    
     if (!app_wifi_is_connected()) {
         return;
     }
 
-    if (timer->period == 1000) {
-        lv_timer_set_period(timer, 120 * 1000);
+    // First call uses boot delay, then switch to normal polling interval
+    if (first_call) {
+        first_call = false;
+        lv_timer_set_period(timer, WEATHER_POLL_INTERVAL_MS);
     }
 
     esp_err_t ret = http_get_weather(&weather);
@@ -570,7 +592,9 @@ static void weather_run_cb(lv_timer_t *timer)
 
     ui_acquire();
 
-    lv_label_set_text_fmt(lab_status_bar_weather, "%s %s %s℃ %s%%", weather.city, weather.weather, weather.temp, weather.humi);
+    if (lab_status_bar_weather) {
+        lv_label_set_text_fmt(lab_status_bar_weather, "%s %s %s℃ %s%%", weather.city, weather.weather, weather.temp, weather.humi);
+    }
 
 //    if (g_item_index == 0) {
 //        lv_label_set_text_fmt(lab_dashboard_weather, "%s %s %s℃ %s%%",
@@ -640,9 +664,9 @@ esp_err_t ui_main_start(void)
 
     lv_obj_clear_flag(lv_scr_act(), LV_OBJ_FLAG_SCROLLABLE);
 
-    // Main background
+    // Main background (PNG format for better LVGL compatibility)
     lv_obj_t *bg_img = lv_img_create(lv_scr_act());
-    lv_img_set_src(bg_img, "S:spiffs/2.jpg");
+    lv_img_set_src(bg_img, "S:/2.png");
     lv_obj_set_pos(bg_img, 0, 0);
     lv_obj_set_width(bg_img, LV_HOR_RES);
     lv_obj_set_height(bg_img, LV_VER_RES);

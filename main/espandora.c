@@ -124,7 +124,7 @@ void app_main(void)
 {
     esp_log_level_set("ui_main", ESP_LOG_VERBOSE);
     esp_log_level_set("wifi_init", ESP_LOG_VERBOSE);
-//    esp_log_level_set("http", ESP_LOG_VERBOSE);
+    // esp_log_level_set("http", ESP_LOG_VERBOSE);
 
     ESP_LOGI(TAG, "Compile time: %s %s", __DATE__, __TIME__);
     /* Initialize NVS. */
@@ -138,7 +138,12 @@ void app_main(void)
 #if !SR_RUN_TEST && MEMORY_MONITOR
     sys_monitor_start(); // Logs should be reduced during SR testing
 #endif
-    bsp_spiffs_mount();
+    err = bsp_spiffs_mount();
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Failed to mount SPIFFS (%s)", esp_err_to_name(err));
+    } else {
+        ESP_LOGI(TAG, "SPIFFS mounted successfully");
+    }
 
     bsp_i2c_init();
     bsp_display_start();

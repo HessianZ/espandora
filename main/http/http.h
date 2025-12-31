@@ -7,9 +7,9 @@
 
 typedef struct {
     char city[10];
-    char temp[5];
+    char temp[8];
     char weather[12];
-    char humi[5];
+    char humi[8];
     char wind[12];
     char windSpeed[10];
 } weather_result_t;

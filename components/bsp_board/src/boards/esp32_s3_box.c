@@ -112,7 +112,7 @@ esp_err_t bsp_btn_init(void)
 {
     ESP_ERROR_CHECK((NULL != g_btn_handle));
 
-    g_btn_handle = calloc(sizeof(button_handle_t), BOARD_BTN_ID_NUM);
+    g_btn_handle = calloc(BOARD_BTN_ID_NUM, sizeof(button_handle_t));
     assert((g_btn_handle) && "memory is insufficient for button");
 
     ESP_LOGI(TAG, "[+ Btn Init] ID");

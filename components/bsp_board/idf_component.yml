@@ -2,9 +2,5 @@
 dependencies:
   espressif/button: ^2
 
-  espressif/esp-box:
-    version: "2.4.*"
-    require: "no"
   espressif/esp-box-lite:
-    version: "1.0.*"
-    require: "no"
+    version: "~2.1.0"  # Updated for ESP-IDF 5.5.1 (LVGL 9.x, new I2C driver)

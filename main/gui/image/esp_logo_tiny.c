@@ -117,10 +117,10 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_IMG_ESP_LOGO_TINY uint8_t esp_logo_tin
 };
 
 const lv_img_dsc_t esp_logo_tiny = {
-  .header.always_zero = 0,
+  .header.stride = 0,
   .header.w = 24,
   .header.h = 24,
-  .data_size = 576 * LV_IMG_PX_SIZE_ALPHA_BYTE,
-  .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
+  .data_size = 576 * 4,
+  .header.cf = LV_COLOR_FORMAT_RGB565A8,
   .data = esp_logo_tiny_map,
 };

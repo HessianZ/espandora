@@ -143,7 +143,7 @@ int play_weather()
         num2cn(atoi(weather->humi), humiCn);
         num2cn(atoi(weather->windSpeed), windSpeedCn);
 
-        sprintf(str, "%s %s %s℃ 湿度%s%% %s%s级",
+        sprintf(str, "%s %s %s 湿度%s%% %s%s级",
                 weather->city,
                 weather->weather,
                 weather->temp,
@@ -200,7 +200,9 @@ int fan_control()
 
 static esp_err_t sr_echo_play(audio_segment_t audio)
 {
-    bsp_audio_poweramp_enable(false); // turn off the speaker to avoid play some noise
+    // NOTE: bsp_audio_poweramp_enable() removed in esp-box-lite 2.1.0
+    // Power management is handled internally by BSP audio codec
+    // bsp_audio_poweramp_enable(false); // turn off the speaker to avoid play some noise
 
     typedef struct {
         // The "RIFF" chunk descriptor
@@ -249,7 +251,8 @@ static esp_err_t sr_echo_play(audio_segment_t audio)
     ESP_LOGI(TAG, "bsp_codec_set_voice_volume=%d", param->volume);
 
     vTaskDelay(pdMS_TO_TICKS(50));
-    bsp_audio_poweramp_enable(true);
+    // NOTE: bsp_audio_poweramp_enable() removed in esp-box-lite 2.1.0
+    // bsp_audio_poweramp_enable(true);
 
     size_t bytes_written = 0;
     b_audio_playing = true;

@@ -16,13 +16,13 @@ static lv_group_t *g_btn_op_group = NULL;
 
 static void ring_mask_event_handler(lv_event_t *event)
 {
-    bool active = (bool) event->param;
+    bool active = (bool) lv_event_get_param(event);  // LVGL 9.x API
 
     lv_indev_t *indev = lv_indev_get_next(NULL);
 
     if (active) {
         // save old group
-        g_btn_op_group_old = indev->group;
+        g_btn_op_group_old = lv_indev_get_group(indev);  // LVGL 9.x API
 
         lv_indev_set_group(indev, g_btn_op_group);
         lv_obj_clear_flag(g_mask, LV_OBJ_FLAG_HIDDEN);
@@ -40,7 +40,7 @@ static void ring_mask_event_handler(lv_event_t *event)
 
 static void ring_label_event_handler(lv_event_t *event)
 {
-    char *text = (char *) event-> param;
+    char *text = (char *) lv_event_get_param(event);  // LVGL 9.x API
     if (NULL != text) {
         lv_label_set_text_static(g_ring_label, text);
     }
@@ -48,7 +48,7 @@ static void ring_label_event_handler(lv_event_t *event)
 
 static void ring_btn_event_handler(lv_event_t *event)
 {
-    switch (event->code) {
+    switch (lv_event_get_code(event)) {  // LVGL 9.x API
         case LV_EVENT_CLICKED:
 //            mqtt_notify("open");
             ui_ring_hide();
@@ -111,7 +111,7 @@ void ui_ring_init(void)
 
 void ui_ring_hide(void)
 {
-    lv_event_send(g_mask, LV_EVENT_VALUE_CHANGED, (void *) false);
+    lv_obj_send_event(g_mask, LV_EVENT_VALUE_CHANGED, (void *) false);  // LVGL 9.x API
 }
 
 static void ui_ring_show_timeout_cb(lv_timer_t *timer)
@@ -121,12 +121,12 @@ static void ui_ring_show_timeout_cb(lv_timer_t *timer)
 
 void ui_ring_show()
 {
-    lv_event_send(g_mask, LV_EVENT_VALUE_CHANGED, (void *) true);
+    lv_obj_send_event(g_mask, LV_EVENT_VALUE_CHANGED, (void *) true);  // LVGL 9.x API
 
     lv_timer_create(ui_ring_show_timeout_cb, 30 * 1000, NULL);
 }
 
 void ui_ring_set_text(char *text)
 {
-    lv_event_send(g_ring_label, LV_EVENT_VALUE_CHANGED, (void *) text);
+    lv_obj_send_event(g_ring_label, LV_EVENT_VALUE_CHANGED, (void *) text);  // LVGL 9.x API
 }

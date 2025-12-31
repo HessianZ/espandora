@@ -34,3 +34,6 @@ idf_component_register(
         "include"
     PRIV_REQUIRES ${priv_requires}
     REQUIRES ${requires})
+
+# Ensure this component doesn't conflict with managed esp-box-lite component
+set_property(TARGET ${COMPONENT_LIB} PROPERTY OUTPUT_NAME "bsp_board")

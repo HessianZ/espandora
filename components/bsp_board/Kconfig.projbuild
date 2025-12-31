@@ -2,7 +2,7 @@ menu "HMI Board Config"
 
     choice BSP_LCD_BOARD
         prompt "Select BSP board"
-        default BSP_BOARD_ESP32_S3_BOX
+        default BSP_BOARD_ESP32_S3_BOX_Lite
         config BSP_BOARD_ESP32_S3_BOX
             bool "BSP board esp32_s3_box"
         config BSP_BOARD_ESP32_S3_BOX_Lite

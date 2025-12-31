@@ -91,7 +91,10 @@ static void ui_net_config_page_app_click_cb(lv_event_t *e)
 
         /* **************** QR CODE **************** */
         static const char *qr_payload = "https://espressif.com/esp-box";
-        lv_obj_t *qr = lv_qrcode_create(page, 92, lv_color_black(), lv_color_white());
+        lv_obj_t *qr = lv_qrcode_create(page);  // LVGL 9.x: only parent param
+        lv_qrcode_set_size(qr, 92);  // LVGL 9.x: separate size setter
+        lv_qrcode_set_dark_color(qr, lv_color_black());  // LVGL 9.x: separate color setter
+        lv_qrcode_set_light_color(qr, lv_color_white());  // LVGL 9.x: separate color setter
         lv_qrcode_update(qr, qr_payload, strlen(qr_payload));
         lv_obj_align(qr, LV_ALIGN_CENTER, 0, 10);
 
@@ -142,7 +145,10 @@ void ui_net_config_update_cb(ui_net_state_t state, void *args)
         LV_IMG_DECLARE(logo_jiong);
         const char *prov_msg = app_wifi_get_prov_payload();
         size_t prov_msg_len = strlen(prov_msg);
-        g_qr = lv_qrcode_create(g_page, 108, lv_color_black(), lv_color_white());
+        g_qr = lv_qrcode_create(g_page);  // LVGL 9.x: only parent param
+        lv_qrcode_set_size(g_qr, 108);  // LVGL 9.x: separate size setter
+        lv_qrcode_set_dark_color(g_qr, lv_color_black());  // LVGL 9.x: separate color setter
+        lv_qrcode_set_light_color(g_qr, lv_color_white());  // LVGL 9.x: separate color setter
         ESP_LOGI(TAG, "QR Data: %s", prov_msg);
         char *p = strstr(prov_msg, "\"name\":\"");
         if (p) {

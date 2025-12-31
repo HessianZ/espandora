@@ -229,10 +229,10 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_IMG_MIC_LOGO uint8_t mic_logo_map[] = 
 };
 
 const lv_img_dsc_t mic_logo = {
-  .header.always_zero = 0,
+  .header.stride = 0,
   .header.w = 29,
   .header.h = 51,
-  .data_size = 1479 * LV_IMG_PX_SIZE_ALPHA_BYTE,
-  .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
+  .data_size = 1479 * 4,
+  .header.cf = LV_COLOR_FORMAT_RGB565A8,
   .data = mic_logo_map,
 };

@@ -113,11 +113,11 @@ const LV_ATTRIBUTE_MEM_ALIGN LV_ATTRIBUTE_IMG_HAND_LEFT uint8_t hand_left_map[] 
 };
 
 const lv_img_dsc_t hand_left = {
-  .header.cf = LV_IMG_CF_TRUE_COLOR_ALPHA,
-  .header.always_zero = 0,
-  .header.reserved = 0,
+  .header.cf = LV_COLOR_FORMAT_RGB565A8,
+  .header.stride = 0,
+  .header.reserved_2 = 0,
   .header.w = 30,
   .header.h = 22,
-  .data_size = 660 * LV_IMG_PX_SIZE_ALPHA_BYTE,
+  .data_size = 660 * 4,
   .data = hand_left_map,
 };
