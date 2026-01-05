@@ -5,6 +5,7 @@
  */
 
 #include <sys/time.h>
+#include <stdio.h>
 #include "esp_log.h"
 #include "bsp/esp-bsp.h"
 #include "lvgl.h"
@@ -559,8 +560,10 @@ static void clock_run_cb(lv_timer_t *timer)
 
         // Indoor temperature and humidity from local sensor
         if (lab_dashboard_rht) {
-            lv_label_set_text_fmt(lab_dashboard_rht, "室内 温度 %.1f℃ 湿度 %.1f%%", g_rht_data.temperature,
-                                  g_rht_data.humidity);
+            char temp_str[16], hum_str[16];
+            sprintf(temp_str, "%.1f", g_rht_data.temperature);
+            sprintf(hum_str, "%.1f", g_rht_data.humidity);
+            lv_label_set_text_fmt(lab_dashboard_rht, "室内 温度 %s℃ 湿度 %s%%", temp_str, hum_str);
         }
     }
 
